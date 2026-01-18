@@ -33,7 +33,7 @@ A unified communications dashboard that provides full access to both **Quo/OpenP
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
-- **AI**: OpenAI GPT-4o-mini, Perplexity API
+- **AI**: Perplexity API (Sonar models for intelligent analysis)
 - **APIs**: OpenPhone API, Gmail API (OAuth2)
 
 ## Getting Started
@@ -45,7 +45,7 @@ A unified communications dashboard that provides full access to both **Quo/OpenP
 - Supabase account
 - OpenPhone API key
 - Google Cloud project with Gmail API enabled
-- OpenAI API key
+- Perplexity API key (sign up at https://www.perplexity.ai/)
 
 ### Installation
 

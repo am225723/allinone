@@ -1,334 +1,384 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-export default function DashboardPage() {
+interface DashboardStats {
+  openphone: {
+    pendingDrafts: number;
+    approvedDrafts: number;
+    totalConversations: number;
+    needsResponse: number;
+    todayActivity: number;
+  };
+  gmail: {
+    unreadEmails: number;
+    pendingDrafts: number;
+    processedToday: number;
+    highPriority: number;
+    needsResponse: number;
+  };
+  overall: {
+    totalCommunications: number;
+    responseRate: number;
+    avgResponseTime: string;
+    activeToday: number;
+  };
+}
+
+interface ActivityItem {
+  id: string;
+  type: 'openphone' | 'gmail';
+  action: string;
+  description: string;
+  timestamp: string;
+  priority?: 'high' | 'normal' | 'low';
+}
+
+export default function DashboardHome() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadStats();
+    loadActivity();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      loadStats(true);
+      loadActivity();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  async function loadStats(silent = false) {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      if (data.ok) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  async function loadActivity() {
+    try {
+      const res = await fetch('/api/stats?type=activity&limit=10');
+      const data = await res.json();
+      if (data.ok) {
+        setActivity(data.activity);
+      }
+    } catch (error) {
+      console.error('Error loading activity:', error);
+    }
+  }
+
+  function formatTimestamp(timestamp: string) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-primary animate-spin">
+              progress_activity
+            </span>
+            <p className="mt-4 text-gray-400">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-6">
-      {/* Hero Section */}
-      <div className="dashboard-hero">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
-            <p className="text-gray-400 text-sm font-medium mb-1">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
-            </p>
-            <h1>Good morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Agent.</span></h1>
-            <p className="mt-2">Manage all your communications from OpenPhone and Gmail in one unified dashboard.</p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/openphone/run" className="btn btn-primary">
-              <span className="material-symbols-outlined text-lg">play_arrow</span>
-              New Run
-            </Link>
-            <Link href="/gmail/triage" className="btn btn-secondary">
-              <span className="material-symbols-outlined text-lg">filter_alt</span>
-              Triage Emails
-            </Link>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Communications Dashboard</h1>
+          <p className="text-gray-400 mt-1">Unified view of all your communications</p>
         </div>
-
-        {/* Stats Grid */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">Total Conversations</span>
-            <span className="stat-value">1,240</span>
-            <span className="stat-change positive">
-              <span className="material-symbols-outlined text-sm">trending_up</span>
-              +12% this week
-            </span>
-          </div>
-          <div className="stat-card" style={{ borderColor: 'rgba(230, 59, 25, 0.3)' }}>
-            <span className="stat-label flex items-center gap-1">
-              <span className="material-symbols-outlined text-primary text-sm">priority_high</span>
-              Needs Response
-            </span>
-            <span className="stat-value text-primary">14</span>
-            <span className="text-xs text-gray-400">Across all channels</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Drafts Pending</span>
-            <span className="stat-value">8</span>
-            <span className="text-xs text-gray-400">Ready for review</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Resolution Rate</span>
-            <span className="stat-value text-emerald-400">98%</span>
-            <span className="stat-change positive">
-              <span className="material-symbols-outlined text-sm">check_circle</span>
-              Excellent
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Channel Tabs */}
-      <div className="channel-tabs">
-        <button className="channel-tab active">
-          <span className="material-symbols-outlined icon">apps</span>
-          All Channels
-        </button>
-        <button className="channel-tab">
-          <span className="material-symbols-outlined icon">sms</span>
-          OpenPhone SMS
-        </button>
-        <button className="channel-tab">
-          <span className="material-symbols-outlined icon">mail</span>
-          Gmail
+        <button
+          onClick={() => loadStats()}
+          disabled={refreshing}
+          className="btn btn-secondary"
+        >
+          <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>
+            refresh
+          </span>
+          Refresh
         </button>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Quick Actions */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* OpenPhone Quick Actions */}
+      {/* Overall Stats */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Total Communications</p>
+                <p className="text-3xl font-bold mt-1">{stats.overall.totalCommunications}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-blue-400">
+                forum
+              </span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Response Rate</p>
+                <p className="text-3xl font-bold mt-1">{stats.overall.responseRate}%</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-emerald-400">
+                trending_up
+              </span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Avg Response Time</p>
+                <p className="text-3xl font-bold mt-1">{stats.overall.avgResponseTime}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-amber-400">
+                schedule
+              </span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Active Today</p>
+                <p className="text-3xl font-bold mt-1">{stats.overall.activeToday}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-purple-400">
+                today
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Channel Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* OpenPhone Stats */}
+        {stats && (
           <div className="card">
             <div className="card-header">
-              <div>
-                <h3 className="card-title flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">sms</span>
-                  OpenPhone
-                </h3>
-                <p className="card-subtitle">SMS & Voice Communications</p>
-              </div>
-              <span className="badge badge-primary">Active</span>
-            </div>
-            <div className="space-y-3">
-              <Link href="/openphone/run" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">play_arrow</span>
-                Start New Run
+              <h3 className="card-title flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">phone</span>
+                OpenPhone / SMS
+              </h3>
+              <Link href="/openphone" className="btn btn-sm btn-secondary">
+                View All
               </Link>
-              <Link href="/openphone/review" className="btn btn-secondary w-full justify-start">
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-amber-400">pending</span>
+                  <span className="text-sm">Pending Drafts</span>
+                </div>
+                <span className="text-xl font-bold">{stats.openphone.pendingDrafts}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+                  <span className="text-sm">Approved Drafts</span>
+                </div>
+                <span className="text-xl font-bold">{stats.openphone.approvedDrafts}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-red-400">priority_high</span>
+                  <span className="text-sm">Needs Response</span>
+                </div>
+                <span className="text-xl font-bold">{stats.openphone.needsResponse}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-blue-400">today</span>
+                  <span className="text-sm">Today's Activity</span>
+                </div>
+                <span className="text-xl font-bold">{stats.openphone.todayActivity}</span>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link href="/openphone/run" className="btn btn-primary btn-sm flex-1">
+                <span className="material-symbols-outlined">play_arrow</span>
+                Start Run
+              </Link>
+              <Link href="/openphone/review" className="btn btn-secondary btn-sm flex-1">
                 <span className="material-symbols-outlined">rate_review</span>
                 Review Drafts
-                <span className="ml-auto badge badge-warning">5</span>
-              </Link>
-              <Link href="/openphone/summaries" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">summarize</span>
-                View Summaries
-              </Link>
-              <Link href="/openphone/history" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">history</span>
-                Run History
               </Link>
             </div>
           </div>
+        )}
 
-          {/* Gmail Quick Actions */}
+        {/* Gmail Stats */}
+        {stats && (
           <div className="card">
             <div className="card-header">
-              <div>
-                <h3 className="card-title flex items-center gap-2">
-                  <span className="material-symbols-outlined text-blue-400">mail</span>
-                  Gmail
-                </h3>
-                <p className="card-subtitle">Email Triage & Drafts</p>
-              </div>
-              <span className="badge badge-info">Connected</span>
-            </div>
-            <div className="space-y-3">
-              <Link href="/gmail/triage" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">filter_alt</span>
-                Run Triage
-              </Link>
-              <Link href="/gmail/activity" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">monitoring</span>
-                Activity Log
-                <span className="ml-auto badge badge-success">12 new</span>
-              </Link>
-              <Link href="/gmail/rules" className="btn btn-secondary w-full justify-start">
-                <span className="material-symbols-outlined">rule</span>
-                Manage Rules
-              </Link>
-              <a 
-                href="https://mail.google.com/mail/u/0/#drafts" 
-                target="_blank" 
-                rel="noreferrer"
-                className="btn btn-secondary w-full justify-start"
-              >
-                <span className="material-symbols-outlined">open_in_new</span>
-                Open Gmail Drafts
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Activity Feed */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <h3 className="card-title">Recent Activity</h3>
-                <p className="card-subtitle">Latest communications across all channels</p>
-              </div>
-              <Link href="/activity" className="btn btn-ghost btn-sm">
+              <h3 className="card-title flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-400">mail</span>
+                Gmail
+              </h3>
+              <Link href="/gmail" className="btn btn-sm btn-secondary">
                 View All
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
-
-            <div className="space-y-2">
-              {/* SMS Activity */}
-              <div className="activity-item border-l-2 border-l-primary">
-                <div className="activity-icon sms">
-                  <span className="material-symbols-outlined">chat_bubble</span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-amber-400">mark_email_unread</span>
+                  <span className="text-sm">Unread Emails</span>
                 </div>
-                <div className="activity-content">
-                  <div className="activity-title">Jane Doe - Refund Request</div>
-                  <div className="activity-preview">"I understand, but I need the refund processed today..."</div>
-                  <div className="activity-meta flex items-center gap-3">
-                    <span className="badge badge-warning">Needs Response</span>
-                    <span>2 minutes ago</span>
-                  </div>
-                </div>
+                <span className="text-xl font-bold">{stats.gmail.unreadEmails}</span>
               </div>
-
-              {/* Email Activity */}
-              <div className="activity-item border-l-2 border-l-blue-500">
-                <div className="activity-icon email">
-                  <span className="material-symbols-outlined">mail</span>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-purple-400">drafts</span>
+                  <span className="text-sm">Pending Drafts</span>
                 </div>
-                <div className="activity-content">
-                  <div className="activity-title">Mark Smith - Account Issue</div>
-                  <div className="activity-preview">"Can you help me reset my 2FA? I lost my phone..."</div>
-                  <div className="activity-meta flex items-center gap-3">
-                    <span className="badge badge-info">Draft Created</span>
-                    <span>15 minutes ago</span>
-                  </div>
-                </div>
+                <span className="text-xl font-bold">{stats.gmail.pendingDrafts}</span>
               </div>
-
-              {/* SMS Activity */}
-              <div className="activity-item border-l-2 border-l-primary">
-                <div className="activity-icon sms">
-                  <span className="material-symbols-outlined">chat_bubble</span>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-red-400">priority_high</span>
+                  <span className="text-sm">High Priority</span>
                 </div>
-                <div className="activity-content">
-                  <div className="activity-title">Alex Chen - Appointment Confirmation</div>
-                  <div className="activity-preview">"Yes, 3pm works perfectly for me. See you then!"</div>
-                  <div className="activity-meta flex items-center gap-3">
-                    <span className="badge badge-success">Resolved</span>
-                    <span>1 hour ago</span>
-                  </div>
-                </div>
+                <span className="text-xl font-bold">{stats.gmail.highPriority}</span>
               </div>
-
-              {/* Email Activity */}
-              <div className="activity-item border-l-2 border-l-blue-500">
-                <div className="activity-icon email">
-                  <span className="material-symbols-outlined">mail</span>
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-blue-400">today</span>
+                  <span className="text-sm">Processed Today</span>
                 </div>
-                <div className="activity-content">
-                  <div className="activity-title">Sarah Johnson - Feature Request</div>
-                  <div className="activity-preview">"Is there a roadmap for the new API endpoints?"</div>
-                  <div className="activity-meta flex items-center gap-3">
-                    <span className="badge">Normal Priority</span>
-                    <span>2 hours ago</span>
-                  </div>
-                </div>
+                <span className="text-xl font-bold">{stats.gmail.processedToday}</span>
               </div>
-
-              {/* SMS Activity */}
-              <div className="activity-item border-l-2 border-l-primary">
-                <div className="activity-icon sms">
-                  <span className="material-symbols-outlined">chat_bubble</span>
-                </div>
-                <div className="activity-content">
-                  <div className="activity-title">Michael Brown - Billing Question</div>
-                  <div className="activity-preview">"Thanks for the quick response! That clears everything up."</div>
-                  <div className="activity-meta flex items-center gap-3">
-                    <span className="badge badge-success">Sent</span>
-                    <span>3 hours ago</span>
-                  </div>
-                </div>
-              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link href="/gmail/triage" className="btn btn-primary btn-sm flex-1">
+                <span className="material-symbols-outlined">play_arrow</span>
+                Start Triage
+              </Link>
+              <Link href="/gmail/activity" className="btn btn-secondary btn-sm flex-1">
+                <span className="material-symbols-outlined">monitoring</span>
+                View Activity
+              </Link>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {/* Response Volume Chart */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <h3 className="card-title">Response Volume</h3>
-                  <p className="card-subtitle">Last 24 hours</p>
-                </div>
-                <span className="stat-change positive">
-                  <span className="material-symbols-outlined text-sm">trending_up</span>
-                  +12%
-                </span>
-              </div>
-              <div className="h-40 bg-surface-darker rounded-lg flex items-end justify-around p-4 gap-2">
-                {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 80].map((height, i) => (
-                  <div
-                    key={i}
-                    className="w-full bg-gradient-to-t from-primary/60 to-primary rounded-t"
-                    style={{ height: `${height}%` }}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-2 px-2">
-                <span>12am</span>
-                <span>6am</span>
-                <span>12pm</span>
-                <span>6pm</span>
-              </div>
-            </div>
-
-            {/* Channel Distribution */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <h3 className="card-title">Channel Distribution</h3>
-                  <p className="card-subtitle">This week</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-6 py-4">
-                <div className="relative w-28 h-28">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-gray-700"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                    />
-                    <path
-                      className="text-primary"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      strokeDasharray="65, 100"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      className="text-blue-500"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      strokeDasharray="35, 100"
-                      strokeDashoffset="-65"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-primary"></span>
-                    <span className="text-sm">OpenPhone SMS</span>
-                    <span className="text-sm font-bold ml-auto">65%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                    <span className="text-sm">Gmail</span>
-                    <span className="text-sm font-bold ml-auto">35%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Recent Activity Feed */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">history</span>
+            Recent Activity
+          </h3>
         </div>
+        {activity.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <span className="material-symbols-outlined text-5xl mb-2">inbox</span>
+            <p>No recent activity</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activity.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors"
+              >
+                <span
+                  className={`material-symbols-outlined ${
+                    item.type === 'openphone' ? 'text-primary' : 'text-blue-400'
+                  }`}
+                >
+                  {item.type === 'openphone' ? 'phone' : 'mail'}
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{item.description}</p>
+                  <p className="text-xs text-gray-500">{formatTimestamp(item.timestamp)}</p>
+                </div>
+                {item.priority === 'high' && (
+                  <span className="material-symbols-outlined text-red-400 text-sm">
+                    priority_high
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <Link href="/openphone/run" className="card hover:border-primary/50 transition-colors cursor-pointer">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary/20 rounded-xl">
+              <span className="material-symbols-outlined text-primary text-3xl">play_arrow</span>
+            </div>
+            <div>
+              <h4 className="font-semibold">Start OpenPhone Run</h4>
+              <p className="text-sm text-gray-400">Process SMS conversations</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/gmail/triage" className="card hover:border-blue-400/50 transition-colors cursor-pointer">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-400/20 rounded-xl">
+              <span className="material-symbols-outlined text-blue-400 text-3xl">filter_alt</span>
+            </div>
+            <div>
+              <h4 className="font-semibold">Start Email Triage</h4>
+              <p className="text-sm text-gray-400">Analyze and organize emails</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/settings" className="card hover:border-gray-400/50 transition-colors cursor-pointer">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gray-400/20 rounded-xl">
+              <span className="material-symbols-outlined text-gray-400 text-3xl">settings</span>
+            </div>
+            <div>
+              <h4 className="font-semibold">Settings</h4>
+              <p className="text-sm text-gray-400">Configure your dashboard</p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );
