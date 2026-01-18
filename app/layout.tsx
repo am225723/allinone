@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import NotificationCenter from '@/components/NotificationCenter';
 
 export const metadata: Metadata = {
   title: 'Unified Communications Dashboard',
@@ -63,6 +64,10 @@ export default function RootLayout({
                   </Link>
                 </div>
 
+                <Link href="/search" className="nav-link">
+                  <span className="material-symbols-outlined icon">search</span>
+                  Search
+                </Link>
                 <Link href="/settings" className="nav-link">
                   <span className="material-symbols-outlined icon">settings</span>
                   Settings
@@ -71,10 +76,7 @@ export default function RootLayout({
 
               {/* Right Actions */}
               <div className="flex items-center gap-3">
-                <button className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-                  <span className="material-symbols-outlined">notifications</span>
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background-dark"></span>
-                </button>
+                <NotificationCenter />
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-orange-400 p-[2px]">
                   <div className="w-full h-full rounded-full bg-background-dark flex items-center justify-center text-sm font-bold">
                     A
