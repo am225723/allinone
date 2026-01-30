@@ -60,6 +60,10 @@ export default function RootLayout({
                   <span className="material-symbols-outlined icon">settings</span>
                   Settings
                 </Link>
+                <Link href="/admin" className="nav-link">
+                  <span className="material-symbols-outlined icon">admin_panel_settings</span>
+                  Admin
+                </Link>
               </nav>
 
               {/* Right Actions */}

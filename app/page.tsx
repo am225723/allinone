@@ -343,39 +343,51 @@ export default function DashboardHome() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <Link href="/openphone/run" className="card hover:border-primary/50 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center text-center gap-3 py-2">
             <div className="p-3 bg-primary/20 rounded-xl">
-              <span className="material-symbols-outlined text-primary text-3xl">play_arrow</span>
+              <span className="material-symbols-outlined text-primary text-2xl">play_arrow</span>
             </div>
             <div>
-              <h4 className="font-semibold">Start OpenPhone Run</h4>
-              <p className="text-sm text-gray-400">Process SMS conversations</p>
+              <h4 className="font-semibold text-sm">OpenPhone Run</h4>
+              <p className="text-xs text-gray-400">Process SMS</p>
             </div>
           </div>
         </Link>
 
         <Link href="/gmail/triage" className="card hover:border-blue-400/50 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center text-center gap-3 py-2">
             <div className="p-3 bg-blue-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-blue-400 text-3xl">filter_alt</span>
+              <span className="material-symbols-outlined text-blue-400 text-2xl">filter_alt</span>
             </div>
             <div>
-              <h4 className="font-semibold">Start Email Triage</h4>
-              <p className="text-sm text-gray-400">Analyze and organize emails</p>
+              <h4 className="font-semibold text-sm">Email Triage</h4>
+              <p className="text-xs text-gray-400">Analyze emails</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/admin" className="card hover:border-purple-400/50 transition-colors cursor-pointer">
+          <div className="flex flex-col items-center text-center gap-3 py-2">
+            <div className="p-3 bg-purple-400/20 rounded-xl">
+              <span className="material-symbols-outlined text-purple-400 text-2xl">admin_panel_settings</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm">Admin Panel</h4>
+              <p className="text-xs text-gray-400">Manage & export</p>
             </div>
           </div>
         </Link>
 
         <Link href="/settings" className="card hover:border-gray-400/50 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center text-center gap-3 py-2">
             <div className="p-3 bg-gray-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-gray-400 text-3xl">settings</span>
+              <span className="material-symbols-outlined text-gray-400 text-2xl">settings</span>
             </div>
             <div>
-              <h4 className="font-semibold">Settings</h4>
-              <p className="text-sm text-gray-400">Configure your dashboard</p>
+              <h4 className="font-semibold text-sm">Settings</h4>
+              <p className="text-xs text-gray-400">Configure</p>
             </div>
           </div>
         </Link>
