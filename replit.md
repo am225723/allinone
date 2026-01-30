@@ -165,9 +165,30 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-01-30: Converted to PWA with OneSignal web SDK
+- 2026-01-30: Added Admin Panel for notifications, templates, exports
 - 2026-01-30: Added scheduled automation (Vercel Cron)
 - 2026-01-30: Added OneSignal push notification integration
 - 2026-01-30: Added message templates feature
 - 2026-01-30: Added export/reporting (CSV/JSON/HTML for PDF)
 - 2026-01-30: Added Edge Runtime to 13 API routes
 - 2026-01-30: Initial Replit setup
+
+## PWA Features
+
+This app is a Progressive Web App (PWA) with:
+- **Offline support** via service worker caching
+- **Install to home screen** on mobile and desktop
+- **Push notifications** via OneSignal web SDK
+
+### OneSignal Configuration
+- App ID: `a826fa27-5eaf-46ef-8a58-118e8dd2820c`
+- SDK initialized automatically on page load
+- Users will be prompted to allow notifications
+
+### PWA Files
+- `/public/manifest.json` - Web app manifest
+- `/public/sw.js` - Service worker for offline caching
+- `/public/icons/` - App icons in various sizes
+- `/components/OneSignalInit.tsx` - OneSignal SDK initialization
+- `/components/ServiceWorkerRegistration.tsx` - Service worker registration

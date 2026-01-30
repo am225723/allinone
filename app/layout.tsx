@@ -1,11 +1,31 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import NotificationCenter from '@/components/NotificationCenter';
+import OneSignalInit from '@/components/OneSignalInit';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
   title: 'Unified Communications Dashboard',
   description: 'Manage OpenPhone SMS and Gmail communications in one place',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Unified Comms',
+  },
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    apple: '/icons/icon-192x192.png',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#e63b19',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -16,6 +36,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <OneSignalInit />
+        <ServiceWorkerRegistration />
         <div className="app-shell">
           {/* Top Navigation Bar */}
           <header className="topbar">
