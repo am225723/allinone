@@ -4,9 +4,9 @@
   "private": true,
   "description": "Unified communications dashboard for Quo/OpenPhone and Gmail",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 5000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p 5000",
     "lint": "next lint"
   },
   "dependencies": {
