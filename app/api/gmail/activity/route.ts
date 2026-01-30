@@ -1,5 +1,10 @@
+/**
+ * @vercel Edge Runtime enabled
+ */
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
+
+export const runtime = 'edge';
 
 export async function GET() {
   try {

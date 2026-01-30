@@ -1,5 +1,6 @@
 /**
  * API Route: Bulk Actions
+ * @vercel Edge Runtime enabled
  */
 
 import { NextResponse } from 'next/server';
@@ -13,6 +14,8 @@ import {
   bulkArchiveConversations,
   bulkSendApprovedDrafts,
 } from '@/lib/bulk-actions';
+
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {

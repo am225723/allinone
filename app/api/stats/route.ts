@@ -1,9 +1,12 @@
 /**
  * API Route: Dashboard Statistics
+ * @vercel Edge Runtime enabled
  */
 
 import { NextResponse } from 'next/server';
 import { getDashboardStats, getRecentActivity, getTrendData } from '@/lib/stats';
+
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   try {

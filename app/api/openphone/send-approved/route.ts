@@ -1,6 +1,11 @@
+/**
+ * @vercel Edge Runtime enabled
+ */
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 import { sendTextMessage } from '@/lib/openphone';
+
+export const runtime = 'edge';
 
 export async function POST() {
   try {

@@ -1,5 +1,6 @@
 /**
  * API Route: Notifications
+ * @vercel Edge Runtime enabled
  */
 
 import { NextResponse } from 'next/server';
@@ -11,6 +12,8 @@ import {
   deleteNotification,
   getNotificationCount,
 } from '@/lib/notifications';
+
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   try {

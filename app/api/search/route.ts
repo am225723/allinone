@@ -1,9 +1,12 @@
 /**
  * API Route: Search
+ * @vercel Edge Runtime enabled
  */
 
 import { NextResponse } from 'next/server';
 import { searchCommunications, getSearchSuggestions, SearchParams } from '@/lib/search';
+
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {

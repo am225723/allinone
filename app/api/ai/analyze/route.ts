@@ -1,6 +1,7 @@
 /**
  * API Route: AI Analysis
  * Provides various AI-powered analysis features
+ * @vercel Edge Runtime enabled
  */
 
 import { NextResponse } from 'next/server';
@@ -10,6 +11,8 @@ import {
   generateFollowUpQuestions,
   generateDraftVariations,
 } from '@/lib/ai';
+
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {

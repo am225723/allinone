@@ -1,7 +1,14 @@
+/**
+ * API Route: OpenPhone Run
+ * Executes OpenPhone conversation cleanup
+ * @vercel Edge Runtime enabled
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { listConversations, listMessages } from '@/lib/openphone';
 import { summarizeForCleanup, extractExplicitNameWithReason } from '@/lib/ai';
 import { supabaseServer } from '@/lib/supabase';
+
+export const runtime = 'edge';
 
 function isoStart(d: string) { 
   return new Date(d + 'T00:00:00.000Z').toISOString(); 
