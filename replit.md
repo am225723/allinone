@@ -123,6 +123,8 @@ CUSTOM_SIGNATURE_HTML=<p>Best regards,<br>Your Name</p>
 - `gmail_accounts` - Connected Gmail accounts
 - `agent_rules` - Triage rules
 - `suppressions` - Phone/phrase blocklists
+- `tasks` - Task management with status, priority, checklists
+- `tasks_history` - Task audit log
 
 ### New Tables (run `supabase/migrations/002_new_features.sql`)
 - `push_devices` - Push notification device registrations
@@ -169,6 +171,7 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-01-30: Added Task Management Module with List/Kanban views, AI features
 - 2026-01-30: Added admin authentication with password protection
 - 2026-01-30: Converted to PWA with OneSignal web SDK
 - 2026-01-30: Added Admin Panel for notifications, templates, exports

@@ -1,0 +1,124 @@
+
+I need to add a feature-packed **Todo/Task Management Module** to my existing "Unified Communications Dashboard" project. 
+
+
+
+**Context:**
+
+- **Stack:** Next.js 14 (App Router), Supabase (PostgreSQL + Auth), Tailwind CSS, TypeScript.
+
+- **Existing Structure:** I have modules for OpenPhone and Gmail located in `app/openphone` and `app/gmail`.
+
+- **Database:** I use a `complete_schema.sql` file for my Supabase setup with RLS enabled.
+
+
+
+**Requirements:**
+
+
+
+1. **Database Schema (Supabase):**
+
+   - Create a SQL migration to add a `tasks` table.
+
+   - **Fields:** `id` (UUID), `title` (text), `description` (text, nullable), `status` (enum: pending, in_progress, completed), `priority` (enum: low, normal, high, urgent), `due_date` (timestamptz), `tags` (text array), `linked_resource` (jsonb - to store metadata like { type: 'gmail', id: '...' } for linking tasks to emails/calls), `created_at`, `updated_at`.
+
+   - Add RLS policies (enable read/write for authenticated users).
+
+   - Add a `tasks_history` or audit log if possible, or just standard `updated_at` triggers.
+
+
+
+2. **Backend/Logic:**
+
+   - Create a `lib/tasks.ts` file containing typed functions for CRUD operations (fetchTasks, createTask, updateTask, deleteTask) using the Supabase client.
+
+   - Ensure it handles error states gracefully.
+
+
+
+3. **Frontend (UI/UX):**
+
+   - Create a new route: `app/tasks/page.tsx`.
+
+   - **Layout:** A clean, modern dashboard view (Grid or List toggle).
+
+   - **Features:**
+
+     - **Quick Add:** A prominent input bar at the top to add tasks quickly.
+
+     - **Filtering/Sorting:** Sidebar or dropdowns to filter by Status, Priority, or Tags.
+
+     - **Visual Indicators:** Color-coded badges for Priority (e.g., Red for Urgent, Green for Low).
+
+     - **Context Links:** If a task has a `linked_resource`, show a small button/icon that links back to the relevant Gmail or OpenPhone conversation.
+
+   - **Edit Modal:** Clicking a task should open a modal/sheet to edit details.
+
+
+
+4. **Integration:**
+
+   - Update `app/layout.tsx` to add a "Tasks" link to the sidebar navigation (use the `check_circle` or `task` Material Symbol).
+
+   - Add a "My Tasks" widget/summary to the main dashboard (`app/page.tsx`) that shows the top 3 high-priority pending tasks.
+
+
+
+5. **AI Integration (Optional but desired):**
+
+   - Since I have `openai` and `lib/ai.ts`, add a "Suggest Priority" button in the task creation form that analyzes the task title and suggests a priority level.
+
+
+
+Please generate the code for the SQL updates, the library functions, the new page/components, and the necessary updates to the layout.
+
+
+
+I need to add a comprehensive, team-focused **Task Management Module** to my "Unified Communications Dashboard".
+
+
+
+**Context:** Next.js 14, Supabase, Tailwind, TypeScript.
+
+
+
+**1. Database Schema (Supabase):**
+
+   - Create a `tasks` table with: `id` (UUID), `title`, `description`, `status` (pending, in_progress, completed), `priority` (low, normal, high, urgent), `due_date`, `tags` (array), `assigned_to` (UUID link to auth.users), `recurrence` (text/json for repeating tasks), and `linked_resource` (jsonb for linking to Gmail/OpenPhone IDs).
+
+   - Enable RLS for team access.
+
+
+
+**2. Backend/Logic:**
+
+   - Create `lib/tasks.ts` for CRUD operations.
+
+   - **Assignments:** When `assigned_to` changes, insert a record into the existing `notifications` table.
+
+   - **Recurring:** Add logic to handle repeating tasks (if a task is marked 'recurring', logic to clone it for the next date).
+
+
+
+**3. Frontend (UI/UX):**
+
+   - **Views:** specific `app/tasks/page.tsx` with a toggle for **List View** (table) and **Kanban View** (Drag-and-drop columns for status).
+
+   - **Smart Input:** A natural language input (e.g., "Call patient tomorrow at 9am") that parses the date automatically if possible.
+
+   - **Edit Modal:** Allow assigning users, setting due dates, and adding sub-checklists.
+
+   - **Dashboard Widget:** Update `app/page.tsx` to show "My Tasks" (tasks assigned to the current user).
+
+
+
+**4. AI Agent Features:**
+
+   - **Priority Guesser:** Button to suggest priority based on keywords.
+
+   - **Task Breakdown:** Button to generate a 5-step checklist for vague tasks using OpenAI.
+
+
+
+Please generate the SQL migration, the full TypeScript library, and the frontend components including the Kanban board.

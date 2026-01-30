@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+}
+
 interface DashboardStats {
   openphone: {
     pendingDrafts: number;
@@ -38,21 +46,40 @@ interface ActivityItem {
 export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadStats();
     loadActivity();
+    loadTasks();
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadStats(true);
       loadActivity();
+      loadTasks();
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
+
+  async function loadTasks() {
+    try {
+      const res = await fetch('/api/tasks?status=pending,in_progress');
+      const data = await res.json();
+      if (data.ok) {
+        const priorityOrder: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+        const sorted = (data.tasks || [])
+          .sort((a: Task, b: Task) => priorityOrder[a.priority] - priorityOrder[b.priority])
+          .slice(0, 5);
+        setTasks(sorted);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  }
 
   async function loadStats(silent = false) {
     if (!silent) setLoading(true);
@@ -342,8 +369,73 @@ export default function DashboardHome() {
         )}
       </div>
 
+      {/* My Tasks Widget */}
+      <div className="card mt-6">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-400">task_alt</span>
+            My Tasks
+          </h3>
+          <Link href="/tasks" className="btn btn-sm btn-secondary">
+            View All
+          </Link>
+        </div>
+        {tasks.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <span className="material-symbols-outlined text-5xl mb-2">checklist</span>
+            <p>No pending tasks</p>
+            <Link href="/tasks" className="text-primary text-sm hover:underline mt-2 inline-block">
+              Create a task
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <Link
+                key={task.id}
+                href="/tasks"
+                className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors"
+              >
+                <span className={`w-2 h-2 rounded-full ${
+                  task.priority === 'urgent' ? 'bg-red-400' :
+                  task.priority === 'high' ? 'bg-amber-400' :
+                  task.priority === 'normal' ? 'bg-blue-400' : 'bg-emerald-400'
+                }`}></span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{task.title}</p>
+                  {task.due_date && (
+                    <p className="text-xs text-gray-500">
+                      Due: {new Date(task.due_date).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <span className={`px-2 py-0.5 rounded text-xs ${
+                  task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                  task.priority === 'high' ? 'bg-amber-500/20 text-amber-400' :
+                  task.priority === 'normal' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                  {task.priority}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <Link href="/tasks" className="card hover:border-amber-400/50 transition-colors cursor-pointer">
+          <div className="flex flex-col items-center text-center gap-3 py-2">
+            <div className="p-3 bg-amber-400/20 rounded-xl">
+              <span className="material-symbols-outlined text-amber-400 text-2xl">task_alt</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm">Tasks</h4>
+              <p className="text-xs text-gray-400">Manage todos</p>
+            </div>
+          </div>
+        </Link>
+
         <Link href="/openphone/run" className="card hover:border-primary/50 transition-colors cursor-pointer">
           <div className="flex flex-col items-center text-center gap-3 py-2">
             <div className="p-3 bg-primary/20 rounded-xl">
@@ -364,18 +456,6 @@ export default function DashboardHome() {
             <div>
               <h4 className="font-semibold text-sm">Email Triage</h4>
               <p className="text-xs text-gray-400">Analyze emails</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin" className="card hover:border-purple-400/50 transition-colors cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3 py-2">
-            <div className="p-3 bg-purple-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-purple-400 text-2xl">admin_panel_settings</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">Admin Panel</h4>
-              <p className="text-xs text-gray-400">Manage & export</p>
             </div>
           </div>
         </Link>

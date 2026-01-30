@@ -74,6 +74,10 @@ export default function RootLayout({
                   </Link>
                 </div>
 
+                <Link href="/tasks" className="nav-link">
+                  <span className="material-symbols-outlined icon">task_alt</span>
+                  Tasks
+                </Link>
                 <Link href="/search" className="nav-link">
                   <span className="material-symbols-outlined icon">search</span>
                   Search
