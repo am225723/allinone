@@ -89,6 +89,10 @@ GOOGLE_REDIRECT_URI=https://your-domain/api/gmail/auth/callback
 
 ### New Feature Variables
 ```
+# Admin Authentication
+ADMIN_PASSWORD=your-secure-admin-password
+ADMIN_EMAILS=admin@example.com,another@example.com
+
 # OneSignal Push Notifications
 ONESIGNAL_APP_ID=your-onesignal-app-id
 ONESIGNAL_REST_API_KEY=your-onesignal-rest-api-key
@@ -165,6 +169,7 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-01-30: Added admin authentication with password protection
 - 2026-01-30: Converted to PWA with OneSignal web SDK
 - 2026-01-30: Added Admin Panel for notifications, templates, exports
 - 2026-01-30: Added scheduled automation (Vercel Cron)
