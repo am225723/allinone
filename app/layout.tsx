@@ -44,7 +44,7 @@ export default function RootLayout({
             <div className="container topbar-inner">
               {/* Brand */}
               <Link href="/" className="brand">
-                <div className="brand-logo">UC</div>
+                <img src="/icons/icon-192x192.png" alt="Integrative Psychiatry" className="brand-logo-img" />
                 <div className="brand-title">
                   <strong>Unified Comms</strong>
                   <span>Command Center</span>

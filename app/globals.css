@@ -186,6 +186,13 @@ a:hover {
   box-shadow: 0 4px 12px rgba(230, 59, 25, 0.3);
 }
 
+.brand-logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
 .brand-title {
   display: flex;
   flex-direction: column;
