@@ -1,0 +1,48 @@
+12:13:23.489 Running build in Washington, D.C., USA (East) – iad1
+12:13:23.490 Build machine configuration: 4 cores, 8 GB
+12:13:23.599 Cloning github.com/am225723/allinone (Branch: feature/unified-communications-dashboard, Commit: 0903c38)
+12:13:23.600 Previous build caches not available.
+12:13:23.799 Cloning completed: 199.000ms
+12:13:24.161 Running "vercel build"
+12:13:25.090 Vercel CLI 50.9.5
+12:13:25.380 Installing dependencies...
+12:13:28.120 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+12:13:28.581 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+12:13:29.653 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+12:13:29.698 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+12:13:29.709 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+12:13:30.036 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+12:13:32.087 npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+12:13:37.603 
+12:13:37.603 added 444 packages in 12s
+12:13:37.604 
+12:13:37.604 158 packages are looking for funding
+12:13:37.604   run `npm fund` for details
+12:13:37.657 Detected Next.js version: 14.2.35
+12:13:37.661 Running "npm run build"
+12:13:37.765 
+12:13:37.765 > unified-communications-dashboard@1.0.0 build
+12:13:37.765 > next build
+12:13:37.765 
+12:13:38.299 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+12:13:38.299 This information is used to shape Next.js' roadmap and prioritize features.
+12:13:38.299 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+12:13:38.299 https://nextjs.org/telemetry
+12:13:38.300 
+12:13:38.353   ▲ Next.js 14.2.35
+12:13:38.353 
+12:13:38.371    Creating an optimized production build ...
+12:14:11.979  ✓ Compiled successfully
+12:14:11.979    Linting and checking validity of types ...
+12:14:23.869 Failed to compile.
+12:14:23.869 
+12:14:23.869 ./supabase/functions/ai-analyze/index.ts:1:23
+12:14:23.869 Type error: Cannot find module 'https://deno.land/std@0.168.0/http/server.ts' or its corresponding type declarations.
+12:14:23.869 
+12:14:23.870 [0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { serve } [36mfrom[39m [32m"https://deno.land/std@0.168.0/http/server.ts"[39m[0m
+12:14:23.870 [0m [90m   |[39m                       [31m[1m^[22m[39m[0m
+12:14:23.870 [0m [90m 2 |[39m [36mimport[39m { createClient } [36mfrom[39m [32m'https://esm.sh/@supabase/supabase-js@2.38.4'[39m[0m
+12:14:23.870 [0m [90m 3 |[39m[0m
+12:14:23.870 [0m [90m 4 |[39m [36mconst[39m corsHeaders [33m=[39m {[0m
+12:14:23.945 Next.js build worker exited with code: 1 and signal: null
+12:14:23.974 Error: Command "npm run build" exited with 1

@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/openphone-cleanup",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/gmail-triage",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
