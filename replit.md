@@ -126,10 +126,13 @@ CUSTOM_SIGNATURE_HTML=<p>Best regards,<br>Your Name</p>
 - `tasks` - Task management with status, priority, checklists
 - `tasks_history` - Task audit log
 
-### New Tables (run `supabase/migrations/002_new_features.sql`)
-- `push_devices` - Push notification device registrations
-- `message_templates` - Saved message templates
-- `daily_summaries` - Daily stats for reporting
+### New Tables (run migrations in order)
+- `push_devices` - Push notification device registrations (002_new_features.sql)
+- `message_templates` - Saved message templates (002_new_features.sql)
+- `daily_summaries` - Daily stats for reporting (002_new_features.sql)
+- `tasks` - Task management with status, priority, checklists (003_tasks.sql)
+- `tasks_history` - Task audit log (003_tasks.sql)
+- `app_settings` - App configuration including PIN (004_app_settings.sql)
 
 ## Vercel Cron Jobs
 
@@ -171,6 +174,9 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-01-31: Added PIN-based authentication (4-6 digits) with /login page
+- 2026-01-31: PIN management added to Admin Panel Settings tab
+- 2026-01-31: Enhanced PWA support for Apple/iOS devices (apple-touch-icon, meta tags)
 - 2026-01-30: Added Task Management Module with List/Kanban views, AI features
 - 2026-01-30: Added admin authentication with password protection
 - 2026-01-30: Converted to PWA with OneSignal web SDK
