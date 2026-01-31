@@ -53,7 +53,7 @@ export default function DashboardHome() {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleLogout = () => {
-    document.cookie = 'auth_pin=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'pin_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/login');
   };
 
