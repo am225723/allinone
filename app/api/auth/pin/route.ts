@@ -10,15 +10,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'PIN must be exactly 4 digits' }, { status: 400 });
     }
 
-    // Get stored PIN from database
+    // Get user with matching PIN from comm_users table
     const { data, error } = await supabaseServer
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'app_pin')
+      .from('comm_users')
+      .select('id, pin, name')
+      .eq('pin', pin)
+      .eq('is_active', true)
       .single();
 
-    if (error) {
-      console.error('Error fetching PIN:', error);
+    if (error || !data) {
+      console.error('Error fetching user:', error);
       // For development/fallback, accept default PIN
       if (pin === '1234') {
         const response = NextResponse.json({ ok: true });
@@ -34,11 +35,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Invalid PIN' }, { status: 401 });
     }
 
-    const storedPin = data?.value;
-
-    if (pin !== storedPin) {
-      return NextResponse.json({ ok: false, error: 'Invalid PIN' }, { status: 401 });
-    }
+    // Update last_login timestamp
+    await supabaseServer
+      .from('comm_users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', data.id);
 
     // Set authentication cookie
     const response = NextResponse.json({ ok: true });

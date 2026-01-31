@@ -132,7 +132,8 @@ CUSTOM_SIGNATURE_HTML=<p>Best regards,<br>Your Name</p>
 - `daily_summaries` - Daily stats for reporting (002_new_features.sql)
 - `tasks` - Task management with status, priority, checklists (003_tasks.sql)
 - `tasks_history` - Task audit log (003_tasks.sql)
-- `app_settings` - App configuration including PIN (004_app_settings.sql)
+- `app_settings` - App configuration (004_app_settings.sql)
+- `comm_users` - User authentication with PIN codes (005_comm_users.sql)
 
 ## Vercel Cron Jobs
 

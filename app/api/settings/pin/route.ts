@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data, error } = await supabaseServer
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'app_pin')
+      .from('comm_users')
+      .select('pin')
+      .eq('role', 'admin')
+      .eq('is_active', true)
       .single();
 
     if (error) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, pin: '1234' });
     }
 
-    return NextResponse.json({ ok: true, pin: data.value });
+    return NextResponse.json({ ok: true, pin: data.pin });
   } catch (error) {
     console.error('Error fetching PIN:', error);
     return NextResponse.json({ ok: false, error: 'Server error' }, { status: 500 });
@@ -45,8 +46,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const { error } = await supabaseServer
-      .from('app_settings')
-      .upsert({ key: 'app_pin', value: pin }, { onConflict: 'key' });
+      .from('comm_users')
+      .update({ pin })
+      .eq('role', 'admin')
+      .eq('is_active', true);
 
     if (error) {
       console.error('Error updating PIN:', error);
