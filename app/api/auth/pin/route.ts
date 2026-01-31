@@ -6,8 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const { pin } = await request.json();
 
-    if (!pin || typeof pin !== 'string' || pin.length < 4 || pin.length > 6) {
-      return NextResponse.json({ ok: false, error: 'Invalid PIN format' }, { status: 400 });
+    if (!pin || typeof pin !== 'string' || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      return NextResponse.json({ ok: false, error: 'PIN must be exactly 4 digits' }, { status: 400 });
     }
 
     // Get stored PIN from database
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error fetching PIN:', error);
       // For development/fallback, accept default PIN
-      if (pin === '123456') {
+      if (pin === '1234') {
         const response = NextResponse.json({ ok: true });
         response.cookies.set('pin_authenticated', 'true', {
           httpOnly: true,

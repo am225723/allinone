@@ -174,7 +174,7 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
-- 2026-01-31: Added PIN-based authentication (4-6 digits) with /login page
+- 2026-01-31: Added PIN-based authentication (4 digits) with fancy animated /login page
 - 2026-01-31: PIN management added to Admin Panel Settings tab
 - 2026-01-31: Enhanced PWA support for Apple/iOS devices (apple-touch-icon, meta tags)
 - 2026-01-30: Added Task Management Module with List/Kanban views, AI features

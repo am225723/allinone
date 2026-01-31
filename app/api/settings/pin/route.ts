@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       // Return default if not found
-      return NextResponse.json({ ok: true, pin: '123456' });
+      return NextResponse.json({ ok: true, pin: '1234' });
     }
 
     return NextResponse.json({ ok: true, pin: data.value });
@@ -40,8 +40,8 @@ export async function PUT(request: NextRequest) {
   try {
     const { pin } = await request.json();
 
-    if (!pin || typeof pin !== 'string' || pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
-      return NextResponse.json({ ok: false, error: 'PIN must be 4-6 digits' }, { status: 400 });
+    if (!pin || typeof pin !== 'string' || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      return NextResponse.json({ ok: false, error: 'PIN must be exactly 4 digits' }, { status: 400 });
     }
 
     const { error } = await supabaseServer

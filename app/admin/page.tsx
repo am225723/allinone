@@ -64,7 +64,7 @@ export default function AdminPage() {
       const res = await fetch('/api/settings/pin');
       const data = await res.json();
       if (data.ok) {
-        setCurrentPin(data.pin || '123456');
+        setCurrentPin(data.pin || '1234');
       }
     } catch (error) {
       console.error('Error loading PIN:', error);
@@ -72,8 +72,8 @@ export default function AdminPage() {
   }
 
   async function updatePin() {
-    if (!newPin || newPin.length < 4 || newPin.length > 6 || !/^\d+$/.test(newPin)) {
-      setMessage({ type: 'error', text: 'PIN must be 4-6 digits' });
+    if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      setMessage({ type: 'error', text: 'PIN must be exactly 4 digits' });
       return;
     }
 
@@ -730,10 +730,10 @@ export default function AdminPage() {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={6}
-                    placeholder="Enter new 4-6 digit PIN"
+                    maxLength={4}
+                    placeholder="Enter new 4-digit PIN"
                     value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="input flex-1"
                   />
                   <button
