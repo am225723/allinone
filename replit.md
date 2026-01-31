@@ -175,6 +175,11 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-01-31: Added avatar dropdown with logout/admin options in navigation bar
+- 2026-01-31: Added User Management tab to Admin Panel (create/delete users)
+- 2026-01-31: Created settings sub-pages: /settings/profile, /settings/notifications, /settings/integrations, /settings/security
+- 2026-01-31: Created missing pages: /gmail/accounts, /gmail/settings, /gmail/rules, /openphone/settings
+- 2026-01-31: Added BackButton component for consistent navigation across sub-pages
 - 2026-01-31: Added PIN-based authentication (4 digits) with fancy animated /login page
 - 2026-01-31: PIN management added to Admin Panel Settings tab
 - 2026-01-31: Enhanced PWA support for Apple/iOS devices (apple-touch-icon, meta tags)

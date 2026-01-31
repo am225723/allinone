@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import BackButton from '@/components/BackButton';
 
 interface Template {
   id: string;
@@ -29,8 +30,17 @@ interface RunHistory {
   drafts_generated: number;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+  last_login: string;
+}
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'notifications' | 'templates' | 'exports' | 'settings' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'notifications' | 'templates' | 'exports' | 'settings' | 'users' | 'logs'>('overview');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [runHistory, setRunHistory] = useState<RunHistory[]>([]);
@@ -51,13 +61,79 @@ export default function AdminPage() {
   const [newPin, setNewPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [pinLoading, setPinLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [showNewUserForm, setShowNewUserForm] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', pin: '', role: 'user' });
 
   useEffect(() => {
     loadSystemStats();
     loadTemplates();
     loadRunHistory();
     loadPin();
+    loadUsers();
   }, []);
+
+  async function loadUsers() {
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      if (data.ok) {
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  }
+
+  async function createUser() {
+    if (!newUser.name || !newUser.pin) {
+      setMessage({ type: 'error', text: 'Name and PIN are required' });
+      return;
+    }
+    if (newUser.pin.length !== 4 || !/^\d{4}$/.test(newUser.pin)) {
+      setMessage({ type: 'error', text: 'PIN must be exactly 4 digits' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({ type: 'success', text: 'User created successfully!' });
+        setNewUser({ name: '', email: '', pin: '', role: 'user' });
+        setShowNewUserForm(false);
+        loadUsers();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to create user' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to create user' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteUser(id: string) {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const res = await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({ type: 'success', text: 'User deleted' });
+        loadUsers();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to delete user' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to delete user' });
+    }
+  }
 
   async function loadPin() {
     try {
@@ -269,15 +345,14 @@ export default function AdminPage() {
   return (
     <div className="container py-6">
       <div className="mb-6">
-        <Link href="/" className="text-gray-400 hover:text-white text-sm flex items-center gap-1 mb-2">
-          <span className="material-symbols-outlined text-sm">arrow_back</span>
-          Back to Dashboard
-        </Link>
+        <div className="flex items-center gap-4 mb-4">
+          <BackButton href="/" label="Back to Dashboard" />
+        </div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
           Admin Dashboard
         </h1>
-        <p className="text-gray-400 mt-1">System management, notifications, templates, and exports</p>
+        <p className="text-gray-400 mt-1">System management, notifications, templates, users, and exports</p>
       </div>
 
       {message && (
@@ -287,7 +362,7 @@ export default function AdminPage() {
       )}
 
       <div className="flex flex-wrap gap-2 mb-6">
-        {(['overview', 'notifications', 'templates', 'exports', 'settings', 'logs'] as const).map((tab) => (
+        {(['overview', 'users', 'notifications', 'templates', 'exports', 'settings', 'logs'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -295,6 +370,7 @@ export default function AdminPage() {
           >
             <span className="material-symbols-outlined">
               {tab === 'overview' ? 'dashboard' : 
+               tab === 'users' ? 'group' :
                tab === 'notifications' ? 'notifications' : 
                tab === 'templates' ? 'description' : 
                tab === 'exports' ? 'download' : 
@@ -416,6 +492,142 @@ export default function AdminPage() {
                   <p className="text-gray-400 text-center py-8">No runs yet</p>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">User Management</h3>
+            <button
+              onClick={() => setShowNewUserForm(!showNewUserForm)}
+              className="btn btn-primary"
+            >
+              <span className="material-symbols-outlined">person_add</span>
+              Add User
+            </button>
+          </div>
+
+          {showNewUserForm && (
+            <div className="card p-6">
+              <h4 className="font-semibold mb-4">Create New User</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    className="input w-full"
+                    placeholder="Enter name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    className="input w-full"
+                    placeholder="Enter email (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">4-Digit PIN *</label>
+                  <input
+                    type="text"
+                    value={newUser.pin}
+                    onChange={(e) => setNewUser({ ...newUser, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    className="input w-full"
+                    placeholder="Enter 4-digit PIN"
+                    maxLength={4}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Role</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    className="input w-full"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button onClick={createUser} disabled={loading} className="btn btn-primary">
+                  {loading ? 'Creating...' : 'Create User'}
+                </button>
+                <button onClick={() => setShowNewUserForm(false)} className="btn btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="card">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">Email</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">Role</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">Last Login</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-400">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-gray-400">
+                        No users found. Click "Add User" to create one.
+                      </td>
+                    </tr>
+                  ) : (
+                    users.map((user) => (
+                      <tr key={user.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                              <span className="text-sm font-bold text-primary">
+                                {user.name?.charAt(0).toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            {user.name}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-400">{user.email || '-'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            user.role === 'admin' 
+                              ? 'bg-purple-500/20 text-purple-400' 
+                              : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-400">
+                          {user.last_login 
+                            ? new Date(user.last_login).toLocaleDateString() 
+                            : 'Never'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => deleteUser(user.id)}
+                            className="btn btn-secondary btn-sm text-red-400"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

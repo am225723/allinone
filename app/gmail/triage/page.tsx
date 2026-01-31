@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import BackButton from '@/components/BackButton';
 
 export default function TriagePage() {
   const [running, setRunning] = useState(false);
