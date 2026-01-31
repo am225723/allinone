@@ -47,12 +47,58 @@ export default function AdminPage() {
     category: 'general',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
 
   useEffect(() => {
     loadSystemStats();
     loadTemplates();
     loadRunHistory();
+    loadPin();
   }, []);
+
+  async function loadPin() {
+    try {
+      const res = await fetch('/api/settings/pin');
+      const data = await res.json();
+      if (data.ok) {
+        setCurrentPin(data.pin || '123456');
+      }
+    } catch (error) {
+      console.error('Error loading PIN:', error);
+    }
+  }
+
+  async function updatePin() {
+    if (!newPin || newPin.length < 4 || newPin.length > 6 || !/^\d+$/.test(newPin)) {
+      setMessage({ type: 'error', text: 'PIN must be 4-6 digits' });
+      return;
+    }
+
+    setPinLoading(true);
+    try {
+      const res = await fetch('/api/settings/pin', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: newPin }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setMessage({ type: 'success', text: 'PIN updated successfully!' });
+        setCurrentPin(newPin);
+        setNewPin('');
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update PIN' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update PIN' });
+    } finally {
+      setPinLoading(false);
+    }
+  }
 
   async function loadSystemStats() {
     try {
@@ -651,6 +697,62 @@ export default function AdminPage() {
 
       {activeTab === 'settings' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <h3 className="card-title mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">pin</span>
+              App PIN Management
+            </h3>
+            <div className="space-y-4">
+              <div className="p-4 bg-black/20 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-medium">Current PIN</p>
+                  <button
+                    onClick={() => setShowPin(!showPin)}
+                    className="text-gray-400 hover:text-white text-sm flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      {showPin ? 'visibility_off' : 'visibility'}
+                    </span>
+                    {showPin ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-4">
+                  <code className="text-2xl font-mono tracking-widest text-primary">
+                    {showPin ? currentPin : '••••••'.slice(0, currentPin.length || 6)}
+                  </code>
+                </div>
+              </div>
+
+              <div className="p-4 bg-black/20 rounded-lg">
+                <p className="font-medium mb-3">Change PIN</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    placeholder="Enter new 4-6 digit PIN"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="input flex-1"
+                  />
+                  <button
+                    onClick={updatePin}
+                    disabled={pinLoading || newPin.length < 4}
+                    className="btn btn-primary"
+                  >
+                    {pinLoading ? (
+                      <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                    ) : (
+                      'Update'
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Users need this PIN to access the app</p>
+              </div>
+            </div>
+          </div>
+
           <div className="card">
             <h3 className="card-title mb-4">System Configuration</h3>
             <div className="space-y-4">

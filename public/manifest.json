@@ -3,10 +3,15 @@
   "short_name": "Unified Comms",
   "description": "Manage OpenPhone SMS and Gmail communications in one place",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#18181b",
   "theme_color": "#e63b19",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -39,6 +44,12 @@
       "purpose": "maskable any"
     },
     {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -57,7 +68,28 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "utilities"],
   "screenshots": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Tasks",
+      "short_name": "Tasks",
+      "url": "/tasks",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "OpenPhone",
+      "short_name": "SMS",
+      "url": "/openphone",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Gmail",
+      "short_name": "Email",
+      "url": "/gmail",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ]
 }
