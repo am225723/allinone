@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Task {
   id: string;
@@ -44,11 +45,17 @@ interface ActivityItem {
 }
 
 export default function DashboardHome() {
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const handleLogout = () => {
+    document.cookie = 'auth_pin=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    router.push('/login');
+  };
 
   useEffect(() => {
     loadStats();
@@ -149,16 +156,26 @@ export default function DashboardHome() {
           <h1 className="text-3xl font-bold">Communications Dashboard</h1>
           <p className="text-gray-400 mt-1">Unified view of all your communications</p>
         </div>
-        <button
-          onClick={() => loadStats()}
-          disabled={refreshing}
-          className="btn btn-secondary"
-        >
-          <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>
-            refresh
-          </span>
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => loadStats()}
+            disabled={refreshing}
+            className="btn btn-secondary"
+          >
+            <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+            Refresh
+          </button>
+          <button
+            onClick={handleLogout}
+            className="btn btn-secondary"
+            style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Overall Stats */}
