@@ -185,6 +185,14 @@ export default function LoginPage() {
               <span className="material-symbols-outlined">shield</span>
               Secured Access
             </div>
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={() => router.push('/admin')}
+            >
+              <span className="material-symbols-outlined">admin_panel_settings</span>
+              Admin Access
+            </button>
           </div>
         </div>
       </div>
@@ -533,6 +541,32 @@ export default function LoginPage() {
 
         .security-badge .material-symbols-outlined {
           font-size: 16px;
+        }
+
+        .admin-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 16px;
+          padding: 10px 20px;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .admin-btn:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.2);
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .admin-btn .material-symbols-outlined {
+          font-size: 18px;
         }
       `}</style>
     </div>
