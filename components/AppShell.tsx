@@ -25,7 +25,8 @@ export default function AppShell({ children }: AppShellProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/auth/pin', { method: 'DELETE' });
     document.cookie = 'pin_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'pin_authenticated=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     window.location.href = '/login';
