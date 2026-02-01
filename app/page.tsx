@@ -44,9 +44,20 @@ interface ActivityItem {
   priority?: 'high' | 'normal' | 'low';
 }
 
+interface PatientDashboardStats {
+  notesPending: number;
+  appointmentsThisWeek: number;
+  topIcd10: Array<{ code: string; label: string; count: number }>;
+  appointmentsToday: {
+    dateLabel: string;
+    items: Array<{ time: string; patient: string; type: string }>;
+  };
+}
+
 export default function DashboardHome() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [patientStats, setPatientStats] = useState<PatientDashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,18 +70,37 @@ export default function DashboardHome() {
 
   useEffect(() => {
     loadStats();
+    loadPatientStats();
     loadActivity();
     loadTasks();
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadStats(true);
+      loadPatientStats(true);
       loadActivity();
       loadTasks();
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
+
+  async function loadPatientStats(silent = false) {
+    // We share the same loading spinner for the initial page paint.
+    // If the patient metrics fail, the comms dashboard still works.
+    if (!silent) {
+      // no-op: keep existing loading behavior driven by loadStats
+    }
+    try {
+      const res = await fetch('/api/patient-stats');
+      const data = await res.json();
+      if (data.ok) {
+        setPatientStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error loading patient stats:', error);
+    }
+  }
 
   async function loadTasks() {
     try {
@@ -177,6 +207,73 @@ export default function DashboardHome() {
           </button>
         </div>
       </div>
+
+      {/* Patient Dashboard Metrics */}
+      {patientStats && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+          <div className="card bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Notes Pending</p>
+                <p className="text-3xl font-bold mt-1">{patientStats.notesPending}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-rose-400">edit_note</span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Appointments This Week</p>
+                <p className="text-3xl font-bold mt-1">{patientStats.appointmentsThisWeek}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-cyan-400">calendar_month</span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-violet-500/10 to-violet-600/5 border-violet-500/20">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Top ICD-10 Codes</p>
+                <div className="mt-2 space-y-1">
+                  {patientStats.topIcd10.slice(0, 3).map((c) => (
+                    <div key={c.code} className="flex items-center justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <span className="font-semibold">{c.code}</span>
+                        <span className="text-gray-400"> · </span>
+                        <span className="text-gray-400 truncate">{c.label}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                        {c.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-violet-400">diagnosis</span>
+            </div>
+          </div>
+
+          <div className="card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-400 uppercase">Appointments Today</p>
+                <p className="text-xs text-gray-500 mt-1">{patientStats.appointmentsToday.dateLabel}</p>
+                <div className="mt-2 space-y-1">
+                  {patientStats.appointmentsToday.items.slice(0, 3).map((a, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-gray-300">{a.time}</span>
+                      <span className="text-gray-400 truncate">{a.patient}</span>
+                      <span className="text-gray-500">{a.type}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-5xl text-amber-400">schedule</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overall Stats */}
       {stats && (

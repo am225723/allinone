@@ -51,43 +51,67 @@ export default function AppShell({ children }: AppShellProps) {
 
           {/* Navigation Links */}
           <nav className="nav-links">
-            <Link href="/" className="nav-link">
-              <span className="material-symbols-outlined icon">dashboard</span>
-              Dashboard
+            <Link href="/patients" className={`nav-link ${pathname === '/patients' ? 'active' : ''}`}>
+              <span className="material-symbols-outlined icon">clinical_notes</span>
+              Patients
             </Link>
-            
-            {/* OpenPhone Section */}
-            <div className="relative group">
-              <Link href="/openphone" className="nav-link">
-                <span className="material-symbols-outlined icon">sms</span>
-                OpenPhone
-              </Link>
-            </div>
 
-            {/* Gmail Section */}
+            {/* Keep existing comms areas accessible (tucked into a dropdown) */}
             <div className="relative group">
-              <Link href="/gmail" className="nav-link">
-                <span className="material-symbols-outlined icon">mail</span>
-                Gmail
-              </Link>
+              <button
+                type="button"
+                className="nav-link"
+                style={{ cursor: 'default' }}
+              >
+                <span className="material-symbols-outlined icon">hub</span>
+                Comms
+                <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.7 }}>expand_more</span>
+              </button>
+              <div
+                className="absolute left-0 mt-2 w-56 rounded-xl border border-white/10 bg-[rgba(24,24,27,0.95)] shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
+              >
+                <div className="p-2">
+                  <Link href="/" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                  </Link>
+                  <Link href="/openphone" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">sms</span>
+                    OpenPhone
+                  </Link>
+                  <Link href="/gmail" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">mail</span>
+                    Gmail
+                  </Link>
+                  <Link href="/tasks" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">task_alt</span>
+                    Tasks
+                  </Link>
+                  <Link href="/search" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">search</span>
+                    Search
+                  </Link>
+                  <Link href="/settings" className="dropdown-item" style={{ borderRadius: 10 }}>
+                    <span className="material-symbols-outlined">settings</span>
+                    Settings
+                  </Link>
+                </div>
+              </div>
             </div>
-
-            <Link href="/tasks" className="nav-link">
-              <span className="material-symbols-outlined icon">task_alt</span>
-              Tasks
-            </Link>
-            <Link href="/search" className="nav-link">
-              <span className="material-symbols-outlined icon">search</span>
-              Search
-            </Link>
-            <Link href="/settings" className="nav-link">
-              <span className="material-symbols-outlined icon">settings</span>
-              Settings
-            </Link>
           </nav>
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
+            {/* Home button (left of the notification bell) */}
+            <Link
+              href="/"
+              className="relative p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              title="Back to Dashboard"
+              aria-label="Back to Dashboard"
+            >
+              <span className="material-symbols-outlined">home</span>
+            </Link>
+
             <NotificationCenter />
             <div className="avatar-dropdown" ref={dropdownRef}>
               <button 
