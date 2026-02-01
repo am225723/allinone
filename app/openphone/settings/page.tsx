@@ -5,7 +5,6 @@ import BackButton from '@/components/BackButton';
 
 export default function OpenPhoneSettingsPage() {
   const [settings, setSettings] = useState({
-    apiKey: '',
     autoReply: false,
     maxConversations: 25,
     blockedPhones: '',
@@ -67,17 +66,11 @@ export default function OpenPhoneSettingsPage() {
             <span className="material-symbols-outlined">key</span>
             API Configuration
           </h2>
-          <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+            <span className="material-symbols-outlined text-green-400">check_circle</span>
             <div>
-              <label className="block text-sm font-medium mb-2">API Key</label>
-              <input
-                type="password"
-                value={settings.apiKey}
-                onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
-                className="input w-full"
-                placeholder="Enter your OpenPhone API key"
-              />
-              <p className="text-xs text-muted mt-1">Your API key is stored securely</p>
+              <p className="font-medium text-green-400">API Key Configured</p>
+              <p className="text-sm text-muted">Your OpenPhone API key is securely stored in environment variables</p>
             </div>
           </div>
         </div>
