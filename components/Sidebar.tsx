@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navItems = [
   { href: '/', icon: 'grid_view', label: 'Dashboard' },
@@ -19,6 +19,34 @@ const bottomItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user has admin access (auto-login based on role)
+    checkAdminAccess();
+  }, []);
+
+  async function checkAdminAccess() {
+    try {
+      // Check if admin cookie exists or if user has admin role
+      const adminCookie = document.cookie.split(';').find(c => c.trim().startsWith('admin_authenticated='));
+      if (adminCookie?.includes('true')) {
+        setIsAdmin(true);
+        return;
+      }
+
+      // Check user role from API
+      const res = await fetch('/api/auth/check-role');
+      const data = await res.json();
+      if (data.ok && data.role === 'admin') {
+        setIsAdmin(true);
+        // Auto-set admin cookie for admin users
+        document.cookie = 'admin_authenticated=true; path=/; max-age=86400';
+      }
+    } catch (e) {
+      console.error('Error checking admin access:', e);
+    }
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -27,7 +55,6 @@ export default function Sidebar() {
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
-    // Theme implementation can be extended with context/localStorage
   };
 
   return (
@@ -86,6 +113,7 @@ export default function Sidebar() {
             </span>
           </Link>
         ))}
+
         {/* Dark/Light mode toggle */}
         <button
           onClick={toggleTheme}
@@ -99,6 +127,26 @@ export default function Sidebar() {
             {isDarkMode ? 'Dark Mode' : 'Light Mode'}
           </span>
         </button>
+
+        {/* Admin Panel - shown if user has admin access */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            title="Admin Panel"
+            className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${
+              isActive('/admin')
+                ? 'bg-amber-500/15 text-amber-400'
+                : 'text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-400'
+            }`}
+          >
+            <span className="material-symbols-outlined text-xl flex-shrink-0">
+              kid_star
+            </span>
+            <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              Admin Panel
+            </span>
+          </Link>
+        )}
       </div>
     </aside>
   );
