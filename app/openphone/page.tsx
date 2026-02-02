@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function OpenPhonePage() {
+export default function QuoPage() {
   return (
     <div className="container py-6">
       {/* Header */}
@@ -8,7 +8,7 @@ export default function OpenPhonePage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-3xl">sms</span>
-            OpenPhone Communications
+            Quo Communications
           </h1>
           <p className="text-gray-400 mt-1">Manage SMS conversations, run cleanups, and review draft replies</p>
         </div>
@@ -119,7 +119,7 @@ export default function OpenPhonePage() {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-lg mb-1">Settings</h3>
-              <p className="text-gray-400 text-sm">Configure suppressions, blocklists, and other OpenPhone-specific settings.</p>
+              <p className="text-gray-400 text-sm">Configure suppressions, blocklists, and other Quo-specific settings.</p>
             </div>
           </div>
           <div className="mt-4 flex items-center text-gray-400 text-sm font-medium">

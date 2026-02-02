@@ -4,11 +4,11 @@ import BackButton from '@/components/BackButton';
 
 const integrations = [
   {
-    id: 'openphone',
-    name: 'OpenPhone',
+    id: 'quo',
+    name: 'Quo',
     description: 'Voice and SMS communication platform',
-    icon: 'call',
-    color: 'bg-blue-500',
+    icon: 'sms',
+    color: 'bg-primary',
     connected: true,
     settingsUrl: '/openphone/settings'
   },

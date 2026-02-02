@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import BackButton from '@/components/BackButton';
 
-export default function OpenPhoneSettingsPage() {
+export default function QuoSettingsPage() {
   const [settings, setSettings] = useState({
     autoReply: false,
     maxConversations: 25,
@@ -52,12 +52,12 @@ export default function OpenPhoneSettingsPage() {
   return (
     <div className="container py-6">
       <div className="flex items-center gap-4 mb-6">
-        <BackButton href="/openphone" label="Back to OpenPhone" />
+        <BackButton href="/openphone" label="Back to Quo" />
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">OpenPhone Settings</h1>
-        <p className="text-muted mt-1">Configure your OpenPhone integration</p>
+        <h1 className="text-2xl font-bold">Quo Settings</h1>
+        <p className="text-muted mt-1">Configure your Quo integration</p>
       </div>
 
       <div className="grid gap-6 max-w-2xl">
@@ -70,7 +70,7 @@ export default function OpenPhoneSettingsPage() {
             <span className="material-symbols-outlined text-green-400">check_circle</span>
             <div>
               <p className="font-medium text-green-400">API Key Configured</p>
-              <p className="text-sm text-muted">Your OpenPhone API key is securely stored in environment variables</p>
+              <p className="text-sm text-muted">Your Quo API key is securely stored in environment variables</p>
             </div>
           </div>
         </div>

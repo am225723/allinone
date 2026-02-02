@@ -10,6 +10,7 @@ interface Task {
   status: string;
   priority: string;
   due_date: string | null;
+  description?: string;
 }
 
 interface DashboardStats {
@@ -42,6 +43,7 @@ interface ActivityItem {
   description: string;
   timestamp: string;
   priority?: 'high' | 'normal' | 'low';
+  sender?: string;
 }
 
 interface PatientDashboardStats {
@@ -61,14 +63,6 @@ export default function DashboardHome() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/pin', { method: 'DELETE' });
-    document.cookie = 'pin_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'pin_authenticated=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    window.location.href = '/login';
-  };
 
   useEffect(() => {
     loadStats();
@@ -76,7 +70,6 @@ export default function DashboardHome() {
     loadActivity();
     loadTasks();
     
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadStats(true);
       loadPatientStats(true);
@@ -88,11 +81,6 @@ export default function DashboardHome() {
   }, []);
 
   async function loadPatientStats(silent = false) {
-    // We share the same loading spinner for the initial page paint.
-    // If the patient metrics fail, the comms dashboard still works.
-    if (!silent) {
-      // no-op: keep existing loading behavior driven by loadStats
-    }
     try {
       const res = await fetch('/api/patient-stats');
       const data = await res.json();
@@ -112,7 +100,7 @@ export default function DashboardHome() {
         const priorityOrder: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
         const sorted = (data.tasks || [])
           .sort((a: Task, b: Task) => priorityOrder[a.priority] - priorityOrder[b.priority])
-          .slice(0, 5);
+          .slice(0, 3);
         setTasks(sorted);
       }
     } catch (error) {
@@ -122,7 +110,6 @@ export default function DashboardHome() {
 
   async function loadStats(silent = false) {
     if (!silent) setLoading(true);
-    else setRefreshing(true);
 
     try {
       const res = await fetch('/api/stats');
@@ -134,13 +121,12 @@ export default function DashboardHome() {
       console.error('Error loading stats:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }
 
   async function loadActivity() {
     try {
-      const res = await fetch('/api/stats?type=activity&limit=10');
+      const res = await fetch('/api/stats?type=activity&limit=5');
       const data = await res.json();
       if (data.ok) {
         setActivity(data.activity);
@@ -150,444 +136,320 @@ export default function DashboardHome() {
     }
   }
 
-  function formatTimestamp(timestamp: string) {
+  function formatTime(timestamp: string) {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
+
+  function formatDueTime(dueDate: string | null) {
+    if (!dueDate) return null;
+    const date = new Date(dueDate);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    if (isToday) {
+      return `Due at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    }
+    return `Due ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+  }
+
+  const getPriorityStyle = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+      case 'high':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'normal':
+        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'Urgent';
+      case 'high': return 'High';
+      case 'normal': return 'Med';
+      default: return 'Low';
+    }
+  };
 
   if (loading) {
     return (
-      <div className="container py-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-6xl text-primary animate-spin">
-              progress_activity
-            </span>
-            <p className="mt-4 text-gray-400">Loading dashboard...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl text-primary animate-spin">
+            progress_activity
+          </span>
+          <p className="mt-3 text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Communications Dashboard</h1>
-          <p className="text-gray-400 mt-1">Unified view of all your communications</p>
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+      {/* Stat Cards - 2x2 Grid */}
+      <div className="grid grid-cols-2 gap-3 lg:gap-4">
+        <div className="stat-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="stat-label">Pending Notes</p>
+              <p className="stat-value">{patientStats?.notesPending || 0}</p>
+            </div>
+            <span className="material-symbols-outlined text-primary/60 text-2xl">edit_note</span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => loadStats()}
-            disabled={refreshing}
-            className="btn btn-secondary"
-          >
-            <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>
-              refresh
-            </span>
-            Refresh
-          </button>
-          <button
-            onClick={handleLogout}
-            className="btn btn-secondary"
-            style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Logout
-          </button>
+
+        <div className="stat-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="stat-label">Apps</p>
+              <p className="stat-value">{patientStats?.appointmentsThisWeek || 0}</p>
+            </div>
+            <span className="material-symbols-outlined text-primary/60 text-2xl">calendar_month</span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="stat-label">Total Comms</p>
+              <p className="stat-value">{stats?.overall.totalCommunications || 0}</p>
+            </div>
+            <span className="material-symbols-outlined text-primary/60 text-2xl">forum</span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="stat-label">Response Rate</p>
+              <p className="stat-value">{stats?.overall.responseRate || 0}%</p>
+            </div>
+            <span className="material-symbols-outlined text-primary/60 text-2xl">trending_up</span>
+          </div>
         </div>
       </div>
 
-      {/* Patient Dashboard Metrics */}
-      {patientStats && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <div className="card bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Notes Pending</p>
-                <p className="text-3xl font-bold mt-1">{patientStats.notesPending}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-rose-400">edit_note</span>
-            </div>
-          </div>
+      {/* New Task Button */}
+      <Link 
+        href="/tasks?new=true"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
+      >
+        <span className="material-symbols-outlined">add</span>
+        New Task
+      </Link>
 
-          <div className="card bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Appointments This Week</p>
-                <p className="text-3xl font-bold mt-1">{patientStats.appointmentsThisWeek}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-cyan-400">calendar_month</span>
-            </div>
-          </div>
-
-          <div className="card bg-gradient-to-br from-violet-500/10 to-violet-600/5 border-violet-500/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Top ICD-10 Codes</p>
-                <div className="mt-2 space-y-1">
-                  {patientStats.topIcd10.slice(0, 3).map((c) => (
-                    <div key={c.code} className="flex items-center justify-between gap-3 text-sm">
-                      <div className="min-w-0">
-                        <span className="font-semibold">{c.code}</span>
-                        <span className="text-gray-400"> · </span>
-                        <span className="text-gray-400 truncate">{c.label}</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
-                        {c.count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-violet-400">diagnosis</span>
-            </div>
-          </div>
-
-          <div className="card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Appointments Today</p>
-                <p className="text-xs text-gray-500 mt-1">{patientStats.appointmentsToday.dateLabel}</p>
-                <div className="mt-2 space-y-1">
-                  {patientStats.appointmentsToday.items.slice(0, 3).map((a, idx) => (
-                    <div key={idx} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-gray-300">{a.time}</span>
-                      <span className="text-gray-400 truncate">{a.patient}</span>
-                      <span className="text-gray-500">{a.type}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-amber-400">schedule</span>
-            </div>
-          </div>
+      {/* Today's Tasks */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Today's Tasks</h2>
+          <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400">{tasks.length}</span>
         </div>
-      )}
-
-      {/* Overall Stats */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Total Communications</p>
-                <p className="text-3xl font-bold mt-1">{stats.overall.totalCommunications}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-blue-400">
-                forum
-              </span>
+        <div className="space-y-2">
+          {tasks.length === 0 ? (
+            <div className="text-center py-6 text-gray-500">
+              <span className="material-symbols-outlined text-3xl mb-2">checklist</span>
+              <p className="text-sm">No pending tasks</p>
             </div>
-          </div>
-
-          <div className="card bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Response Rate</p>
-                <p className="text-3xl font-bold mt-1">{stats.overall.responseRate}%</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-emerald-400">
-                trending_up
-              </span>
-            </div>
-          </div>
-
-          <div className="card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Avg Response Time</p>
-                <p className="text-3xl font-bold mt-1">{stats.overall.avgResponseTime}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-amber-400">
-                schedule
-              </span>
-            </div>
-          </div>
-
-          <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400 uppercase">Active Today</p>
-                <p className="text-3xl font-bold mt-1">{stats.overall.activeToday}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-purple-400">
-                today
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Channel Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* OpenPhone Stats */}
-        {stats && (
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">phone</span>
-                OpenPhone / SMS
-              </h3>
-              <Link href="/openphone" className="btn btn-sm btn-secondary">
-                View All
-              </Link>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-amber-400">pending</span>
-                  <span className="text-sm">Pending Drafts</span>
-                </div>
-                <span className="text-xl font-bold">{stats.openphone.pendingDrafts}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-emerald-400">check_circle</span>
-                  <span className="text-sm">Approved Drafts</span>
-                </div>
-                <span className="text-xl font-bold">{stats.openphone.approvedDrafts}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-red-400">priority_high</span>
-                  <span className="text-sm">Needs Response</span>
-                </div>
-                <span className="text-xl font-bold">{stats.openphone.needsResponse}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-blue-400">today</span>
-                  <span className="text-sm">Today's Activity</span>
-                </div>
-                <span className="text-xl font-bold">{stats.openphone.todayActivity}</span>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Link href="/openphone/run" className="btn btn-primary btn-sm flex-1">
-                <span className="material-symbols-outlined">play_arrow</span>
-                Start Run
-              </Link>
-              <Link href="/openphone/review" className="btn btn-secondary btn-sm flex-1">
-                <span className="material-symbols-outlined">rate_review</span>
-                Review Drafts
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Gmail Stats */}
-        {stats && (
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-400">mail</span>
-                Gmail
-              </h3>
-              <Link href="/gmail" className="btn btn-sm btn-secondary">
-                View All
-              </Link>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-amber-400">mark_email_unread</span>
-                  <span className="text-sm">Unread Emails</span>
-                </div>
-                <span className="text-xl font-bold">{stats.gmail.unreadEmails}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-purple-400">drafts</span>
-                  <span className="text-sm">Pending Drafts</span>
-                </div>
-                <span className="text-xl font-bold">{stats.gmail.pendingDrafts}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-red-400">priority_high</span>
-                  <span className="text-sm">High Priority</span>
-                </div>
-                <span className="text-xl font-bold">{stats.gmail.highPriority}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-blue-400">today</span>
-                  <span className="text-sm">Processed Today</span>
-                </div>
-                <span className="text-xl font-bold">{stats.gmail.processedToday}</span>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Link href="/gmail/triage" className="btn btn-primary btn-sm flex-1">
-                <span className="material-symbols-outlined">play_arrow</span>
-                Start Triage
-              </Link>
-              <Link href="/gmail/activity" className="btn btn-secondary btn-sm flex-1">
-                <span className="material-symbols-outlined">monitoring</span>
-                View Activity
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Recent Activity Feed */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">history</span>
-            Recent Activity
-          </h3>
-        </div>
-        {activity.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <span className="material-symbols-outlined text-5xl mb-2">inbox</span>
-            <p>No recent activity</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {activity.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors"
-              >
-                <span
-                  className={`material-symbols-outlined ${
-                    item.type === 'openphone' ? 'text-primary' : 'text-blue-400'
-                  }`}
-                >
-                  {item.type === 'openphone' ? 'phone' : 'mail'}
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{item.description}</p>
-                  <p className="text-xs text-gray-500">{formatTimestamp(item.timestamp)}</p>
-                </div>
-                {item.priority === 'high' && (
-                  <span className="material-symbols-outlined text-red-400 text-sm">
-                    priority_high
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* My Tasks Widget */}
-      <div className="card mt-6">
-        <div className="card-header">
-          <h3 className="card-title flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-400">task_alt</span>
-            My Tasks
-          </h3>
-          <Link href="/tasks" className="btn btn-sm btn-secondary">
-            View All
-          </Link>
-        </div>
-        {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <span className="material-symbols-outlined text-5xl mb-2">checklist</span>
-            <p>No pending tasks</p>
-            <Link href="/tasks" className="text-primary text-sm hover:underline mt-2 inline-block">
-              Create a task
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tasks.map((task) => (
+          ) : (
+            tasks.map((task) => (
               <Link
                 key={task.id}
                 href="/tasks"
-                className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors"
+                className="block p-4 rounded-xl bg-[#1e1e1e] border border-white/5 hover:border-white/10 transition-colors"
               >
-                <span className={`w-2 h-2 rounded-full ${
-                  task.priority === 'urgent' ? 'bg-red-400' :
-                  task.priority === 'high' ? 'bg-amber-400' :
-                  task.priority === 'normal' ? 'bg-blue-400' : 'bg-emerald-400'
-                }`}></span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{task.title}</p>
-                  {task.due_date && (
-                    <p className="text-xs text-gray-500">
-                      Due: {new Date(task.due_date).toLocaleDateString()}
-                    </p>
-                  )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white">{task.title}</p>
+                    {task.due_date && (
+                      <p className="text-xs text-gray-500 mt-1">{formatDueTime(task.due_date)}</p>
+                    )}
+                    {task.description && (
+                      <p className="text-xs text-gray-500 mt-1 truncate">{task.description}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-lg border ${getPriorityStyle(task.priority)}`}>
+                    {getPriorityLabel(task.priority)}
+                  </span>
                 </div>
-                <span className={`px-2 py-0.5 rounded text-xs ${
-                  task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                  task.priority === 'high' ? 'bg-amber-500/20 text-amber-400' :
-                  task.priority === 'normal' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'
-                }`}>
-                  {task.priority}
-                </span>
               </Link>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        <Link href="/tasks" className="card hover:border-amber-400/50 transition-colors cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3 py-2">
-            <div className="p-3 bg-amber-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-amber-400 text-2xl">task_alt</span>
+      {/* Quo / SMS Card */}
+      {stats && (
+        <div className="p-4 rounded-xl bg-[#1e1e1e] border border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">sms</span>
+              <span className="font-semibold text-white">Quo / SMS</span>
+            </div>
+            <span className="text-xs px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Active
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center mb-4">
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Pending</p>
+              <p className="text-xl font-bold text-white">{stats.openphone.pendingDrafts}</p>
             </div>
             <div>
-              <h4 className="font-semibold text-sm">Tasks</h4>
-              <p className="text-xs text-gray-400">Manage todos</p>
+              <p className="text-[10px] text-gray-500 uppercase">OK</p>
+              <p className="text-xl font-bold text-white">{stats.openphone.approvedDrafts}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Resp</p>
+              <p className="text-xl font-bold text-white">{stats.openphone.needsResponse}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Act</p>
+              <p className="text-xl font-bold text-white">{stats.openphone.todayActivity}</p>
             </div>
           </div>
-        </Link>
+          <div className="grid grid-cols-2 gap-2">
+            <Link 
+              href="/openphone/run"
+              className="py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium text-center transition-colors"
+            >
+              Start Run
+            </Link>
+            <Link 
+              href="/openphone/review"
+              className="py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+            >
+              Review
+            </Link>
+          </div>
+        </div>
+      )}
 
-        <Link href="/openphone/run" className="card hover:border-primary/50 transition-colors cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3 py-2">
-            <div className="p-3 bg-primary/20 rounded-xl">
-              <span className="material-symbols-outlined text-primary text-2xl">play_arrow</span>
+      {/* Gmail Card */}
+      {stats && (
+        <div className="p-4 rounded-xl bg-[#1e1e1e] border border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-400">mail</span>
+              <span className="font-semibold text-white">Gmail</span>
+            </div>
+            <span className="text-xs px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              Sync
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center mb-4">
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">New</p>
+              <p className="text-xl font-bold text-white">{stats.gmail.unreadEmails}</p>
             </div>
             <div>
-              <h4 className="font-semibold text-sm">OpenPhone Run</h4>
-              <p className="text-xs text-gray-400">Process SMS</p>
+              <p className="text-[10px] text-gray-500 uppercase">Draft</p>
+              <p className="text-xl font-bold text-white">{stats.gmail.pendingDrafts}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Prio</p>
+              <p className="text-xl font-bold text-white">{stats.gmail.highPriority}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Done</p>
+              <p className="text-xl font-bold text-white">{stats.gmail.processedToday}</p>
             </div>
           </div>
-        </Link>
+          <div className="grid grid-cols-2 gap-2">
+            <Link 
+              href="/gmail/triage"
+              className="py-2.5 rounded-lg bg-blue-500 hover:bg-blue-500/90 text-white text-sm font-medium text-center transition-colors"
+            >
+              Triage
+            </Link>
+            <Link 
+              href="/gmail/activity"
+              className="py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+            >
+              Activity
+            </Link>
+          </div>
+        </div>
+      )}
 
-        <Link href="/gmail/triage" className="card hover:border-blue-400/50 transition-colors cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3 py-2">
-            <div className="p-3 bg-blue-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-blue-400 text-2xl">filter_alt</span>
+      {/* Recent Unified Feed */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Recent Unified Feed</h2>
+        <div className="space-y-2">
+          {activity.length === 0 ? (
+            <div className="text-center py-6 text-gray-500">
+              <span className="material-symbols-outlined text-3xl mb-2">inbox</span>
+              <p className="text-sm">No recent activity</p>
             </div>
-            <div>
-              <h4 className="font-semibold text-sm">Email Triage</h4>
-              <p className="text-xs text-gray-400">Analyze emails</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/settings" className="card hover:border-gray-400/50 transition-colors cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3 py-2">
-            <div className="p-3 bg-gray-400/20 rounded-xl">
-              <span className="material-symbols-outlined text-gray-400 text-2xl">settings</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">Settings</h4>
-              <p className="text-xs text-gray-400">Configure</p>
-            </div>
-          </div>
-        </Link>
+          ) : (
+            activity.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/5"
+              >
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                  item.type === 'openphone' 
+                    ? 'bg-primary/20 text-primary' 
+                    : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {item.sender?.charAt(0)?.toUpperCase() || (item.type === 'openphone' ? 'Q' : 'G')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-white text-sm truncate">
+                      {item.sender || (item.type === 'openphone' ? 'Quo Message' : 'Gmail')}
+                    </p>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">{formatTime(item.timestamp)}</span>
+                  </div>
+                  <p className="text-sm text-gray-400 truncate mt-0.5">{item.description}</p>
+                  <div className="flex gap-1.5 mt-2">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                      item.type === 'openphone' 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {item.type === 'openphone' ? 'SMS' : 'Gmail'}
+                    </span>
+                    {item.priority === 'high' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                        Urgent
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+      {/* Dark Mode Toggle - Fixed bottom right */}
+      <button className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 w-12 h-12 rounded-full bg-[#1e1e1e] border border-white/10 flex items-center justify-center shadow-lg hover:bg-white/10 transition-colors z-40">
+        <span className="material-symbols-outlined text-gray-400">dark_mode</span>
+      </button>
+
+      <style jsx>{`
+        .stat-card {
+          background: #1e1e1e;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .stat-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: white;
+          line-height: 1;
+        }
+      `}</style>
     </div>
   );
 }
