@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
+import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -39,89 +41,36 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="app-shell">
-      {/* Top Navigation Bar */}
-      <header className="topbar">
-        <div className="container topbar-inner">
+      {/* Desktop Sidebar */}
+      <Sidebar />
+
+      {/* Mobile Top Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] border-b border-white/5 h-14">
+        <div className="flex items-center justify-between h-full px-4">
           {/* Brand */}
-          <Link href="/" className="brand">
-            <img src="/icons/icon-192x192.png" alt="Integrative Psychiatry" className="brand-logo-img" />
-            <div className="brand-title">
-              <strong>Unified Comms</strong>
-              <span>Command Center</span>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">CC</span>
             </div>
+            <span className="font-bold text-white">Command Center</span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="nav-links">
-            <Link href="/patients" className={`nav-link ${pathname === '/patients' ? 'active' : ''}`}>
-              <span className="material-symbols-outlined icon">clinical_notes</span>
-              Patients
-            </Link>
-
-            {/* Keep existing comms areas accessible (tucked into a dropdown) */}
-            <div className="relative group">
-              <button
-                type="button"
-                className="nav-link"
-                style={{ cursor: 'default' }}
-              >
-                <span className="material-symbols-outlined icon">hub</span>
-                Comms
-                <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.7 }}>expand_more</span>
-              </button>
-              <div
-                className="absolute left-0 mt-2 w-56 rounded-xl border border-white/10 bg-[rgba(24,24,27,0.95)] shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
-              >
-                <div className="p-2">
-                  <Link href="/" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">dashboard</span>
-                    Dashboard
-                  </Link>
-                  <Link href="/openphone" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">sms</span>
-                    OpenPhone
-                  </Link>
-                  <Link href="/gmail" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">mail</span>
-                    Gmail
-                  </Link>
-                  <Link href="/tasks" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">task_alt</span>
-                    Tasks
-                  </Link>
-                  <Link href="/search" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">search</span>
-                    Search
-                  </Link>
-                  <Link href="/settings" className="dropdown-item" style={{ borderRadius: 10 }}>
-                    <span className="material-symbols-outlined">settings</span>
-                    Settings
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </nav>
-
           {/* Right Actions */}
-          <div className="flex items-center gap-3">
-            {/* Home button (left of the notification bell) */}
+          <div className="flex items-center gap-2">
             <Link
-              href="/"
-              className="relative p-2 hover:bg-gray-800 rounded-lg transition-colors"
-              title="Back to Dashboard"
-              aria-label="Back to Dashboard"
+              href="/search"
+              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
             >
-              <span className="material-symbols-outlined">home</span>
+              <span className="material-symbols-outlined text-gray-400">search</span>
             </Link>
-
             <NotificationCenter />
             <div className="avatar-dropdown" ref={dropdownRef}>
               <button 
                 className="avatar-btn"
                 onClick={() => setShowDropdown(!showDropdown)}
               >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-orange-400 p-[2px]">
-                  <div className="w-full h-full rounded-full bg-background-dark flex items-center justify-center text-sm font-bold">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-orange-400 p-[2px]">
+                  <div className="w-full h-full rounded-full bg-[#1a1a1a] flex items-center justify-center text-xs font-bold">
                     A
                   </div>
                 </div>
@@ -167,7 +116,7 @@ export default function AppShell({ children }: AppShellProps) {
           top: calc(100% + 8px);
           right: 0;
           min-width: 200px;
-          background: var(--background-dark, #1a1a1a);
+          background: #1a1a1a;
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
           padding: 8px;
@@ -213,9 +162,12 @@ export default function AppShell({ children }: AppShellProps) {
       `}</style>
 
       {/* Main Content */}
-      <main className="pb-16">
+      <main className="pt-14 pb-20 lg:pt-0 lg:pb-0 lg:pl-64">
         {children}
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }
