@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-import { cookies } from 'next/headers';
+
+export const runtime = 'edge';
 
 // Check if user is admin authenticated
 function isAdminAuthenticated(request: NextRequest): boolean {

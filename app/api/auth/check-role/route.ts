@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 
+export const runtime = 'edge';
+
 export async function GET(request: NextRequest) {
   try {
     // Read httpOnly cookies set by server during PIN auth

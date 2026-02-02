@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 export async function GET() {
   const now = new Date();
   const today = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });

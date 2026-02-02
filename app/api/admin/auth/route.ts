@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+export const runtime = 'edge';
+
 const ADMIN_COOKIE_NAME = 'admin_session';
 const SESSION_DURATION = 24 * 60 * 60 * 1000;
 
