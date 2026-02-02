@@ -55,12 +55,27 @@ interface PatientDashboardStats {
   };
 }
 
+interface StatCard {
+  id: string;
+  label: string;
+  value: number | string;
+  icon: string;
+}
+
 export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [patientStats, setPatientStats] = useState<PatientDashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Configurable stat cards
+  const [statCards, setStatCards] = useState<StatCard[]>([
+    { id: '1', label: 'Pending Notes', value: 0, icon: 'edit_note' },
+    { id: '2', label: 'Appointments', value: 0, icon: 'calendar_month' },
+    { id: '3', label: 'Total Comms', value: 0, icon: 'forum' },
+    { id: '4', label: 'Response Rate', value: '0%', icon: 'trending_up' },
+  ]);
 
   useEffect(() => {
     loadStats();
@@ -77,6 +92,18 @@ export default function DashboardHome() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Update stat cards when data loads
+  useEffect(() => {
+    if (stats || patientStats) {
+      setStatCards([
+        { id: '1', label: 'Pending Notes', value: patientStats?.notesPending || 0, icon: 'edit_note' },
+        { id: '2', label: 'Appointments', value: patientStats?.appointmentsThisWeek || 0, icon: 'calendar_month' },
+        { id: '3', label: 'Total Comms', value: stats?.overall.totalCommunications || 0, icon: 'forum' },
+        { id: '4', label: 'Response Rate', value: `${stats?.overall.responseRate || 0}%`, icon: 'trending_up' },
+      ]);
+    }
+  }, [stats, patientStats]);
 
   async function loadPatientStats(silent = false) {
     try {
@@ -173,9 +200,9 @@ export default function DashboardHome() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#0d1117]">
         <div className="text-center">
-          <span className="material-symbols-outlined text-5xl text-primary animate-spin">
+          <span className="material-symbols-outlined text-5xl text-blue-400 animate-spin">
             progress_activity
           </span>
           <p className="mt-3 text-gray-400 text-sm">Loading...</p>
@@ -185,7 +212,7 @@ export default function DashboardHome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#0d1117]">
       <div className="flex">
         {/* Main Content Area */}
         <div className="flex-1 p-4 lg:p-6 lg:pr-80">
@@ -198,59 +225,31 @@ export default function DashboardHome() {
                 <input 
                   type="text" 
                   placeholder="Search activities..."
-                  className="pl-10 pr-4 py-2 bg-[#1e1e1e] border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 w-64 focus:outline-none focus:border-primary/50"
+                  className="pl-10 pr-4 py-2.5 bg-[#161b22] border border-[#30363d] rounded-xl text-sm text-white placeholder-gray-500 w-64 focus:outline-none focus:border-blue-500/50"
                 />
               </div>
             </div>
           </div>
 
-          {/* Stat Cards - 4 columns on desktop */}
+          {/* Stat Cards - 4 columns on desktop, configurable */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
-            <div className="stat-card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="stat-label">Pending Notes</p>
-                  <p className="stat-value">{patientStats?.notesPending || 0}</p>
+            {statCards.map((card) => (
+              <div key={card.id} className="stat-card">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="stat-label">{card.label}</p>
+                    <p className="stat-value">{card.value}</p>
+                  </div>
+                  <span className="material-symbols-outlined text-blue-400/40 text-xl">{card.icon}</span>
                 </div>
-                <span className="material-symbols-outlined text-primary/60 text-xl">edit_note</span>
               </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="stat-label">Appointments</p>
-                  <p className="stat-value">{patientStats?.appointmentsThisWeek || 0}</p>
-                </div>
-                <span className="material-symbols-outlined text-primary/60 text-xl">calendar_month</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="stat-label">Total Comms</p>
-                  <p className="stat-value">{stats?.overall.totalCommunications || 0}</p>
-                </div>
-                <span className="material-symbols-outlined text-primary/60 text-xl">forum</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="stat-label">Response Rate</p>
-                  <p className="stat-value">{stats?.overall.responseRate || 0}%</p>
-                </div>
-                <span className="material-symbols-outlined text-primary/60 text-xl">trending_up</span>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Mobile New Task Button */}
           <Link 
             href="/tasks?new=true"
-            className="lg:hidden flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-colors mb-6"
+            className="lg:hidden flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors mb-6"
           >
             <span className="material-symbols-outlined">add</span>
             New Task
@@ -260,13 +259,13 @@ export default function DashboardHome() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* Quo / SMS Card */}
             {stats && (
-              <div className="p-4 rounded-xl bg-[#1e1e1e] border border-white/5">
+              <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">sms</span>
+                    <span className="material-symbols-outlined text-orange-400">sms</span>
                     <span className="font-semibold text-white">Quo / SMS</span>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
                     Active
                   </span>
                 </div>
@@ -291,13 +290,13 @@ export default function DashboardHome() {
                 <div className="grid grid-cols-2 gap-2">
                   <Link 
                     href="/openphone/run"
-                    className="py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium text-center transition-colors"
+                    className="py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium text-center transition-colors"
                   >
                     Start Run
                   </Link>
                   <Link 
                     href="/openphone/review"
-                    className="py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+                    className="py-2.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white text-sm font-medium text-center transition-colors border border-[#30363d]"
                   >
                     Review Drafts
                   </Link>
@@ -307,13 +306,13 @@ export default function DashboardHome() {
 
             {/* Gmail Card */}
             {stats && (
-              <div className="p-4 rounded-xl bg-[#1e1e1e] border border-white/5">
+              <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-red-400">mail</span>
                     <span className="font-semibold text-white">Gmail</span>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
                     Syncing
                   </span>
                 </div>
@@ -338,13 +337,13 @@ export default function DashboardHome() {
                 <div className="grid grid-cols-2 gap-2">
                   <Link 
                     href="/gmail/triage"
-                    className="py-2.5 rounded-lg bg-blue-500 hover:bg-blue-500/90 text-white text-sm font-medium text-center transition-colors"
+                    className="py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium text-center transition-colors"
                   >
                     Start Triage
                   </Link>
                   <Link 
                     href="/gmail/activity"
-                    className="py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+                    className="py-2.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white text-sm font-medium text-center transition-colors border border-[#30363d]"
                   >
                     View Activity
                   </Link>
@@ -354,10 +353,10 @@ export default function DashboardHome() {
           </div>
 
           {/* Recent Unified Feed */}
-          <div className="rounded-xl bg-[#1e1e1e] border border-white/5 p-4">
+          <div className="rounded-xl bg-[#161b22] border border-[#30363d] p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Recent Unified Feed</h2>
-              <button className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+              <button className="p-1.5 rounded-lg hover:bg-[#21262d] transition-colors">
                 <span className="material-symbols-outlined text-gray-500 text-lg">tune</span>
               </button>
             </div>
@@ -371,11 +370,11 @@ export default function DashboardHome() {
                 activity.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#21262d] transition-colors"
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                       item.type === 'openphone' 
-                        ? 'bg-primary/20 text-primary' 
+                        ? 'bg-orange-500/20 text-orange-400' 
                         : 'bg-red-500/20 text-red-400'
                     }`}>
                       {item.sender?.charAt(0)?.toUpperCase() || (item.type === 'openphone' ? 'Q' : 'G')}
@@ -390,7 +389,7 @@ export default function DashboardHome() {
                       <div className="flex gap-1.5 mt-2">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                           item.type === 'openphone' 
-                            ? 'bg-primary/20 text-primary' 
+                            ? 'bg-orange-500/20 text-orange-400' 
                             : 'bg-red-500/20 text-red-400'
                         }`}>
                           {item.type === 'openphone' ? 'SMS' : 'Gmail'}
@@ -416,7 +415,7 @@ export default function DashboardHome() {
           <div className="lg:hidden mt-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Today's Tasks</h2>
-              <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400">{tasks.length}</span>
+              <span className="text-xs px-2 py-1 rounded-full bg-[#21262d] text-gray-400">{tasks.length}</span>
             </div>
             <div className="space-y-2">
               {tasks.length === 0 ? (
@@ -429,7 +428,7 @@ export default function DashboardHome() {
                   <Link
                     key={task.id}
                     href="/tasks"
-                    className="block p-4 rounded-xl bg-[#1e1e1e] border border-white/5 hover:border-white/10 transition-colors"
+                    className="block p-4 rounded-xl bg-[#161b22] border border-[#30363d] hover:border-[#484f58] transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -450,11 +449,11 @@ export default function DashboardHome() {
         </div>
 
         {/* Right Sidebar - Desktop Only */}
-        <div className="hidden lg:block w-72 fixed right-0 top-0 h-screen bg-[#141414] border-l border-white/5 p-4 overflow-y-auto">
+        <div className="hidden lg:block w-72 fixed right-0 top-0 h-screen bg-[#0d1117] border-l border-[#30363d] p-4 overflow-y-auto">
           {/* New Task Button */}
           <Link 
             href="/tasks?new=true"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-colors mb-6"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors mb-6"
           >
             <span className="material-symbols-outlined">add</span>
             New Task
@@ -464,7 +463,7 @@ export default function DashboardHome() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Today's Tasks</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400">{tasks.length}</span>
+              <span className="text-xs px-2 py-1 rounded-full bg-[#21262d] text-gray-400">{tasks.length}</span>
             </div>
             <div className="space-y-2">
               {tasks.length === 0 ? (
@@ -476,7 +475,7 @@ export default function DashboardHome() {
                   <Link
                     key={task.id}
                     href="/tasks"
-                    className="block p-3 rounded-xl bg-[#1e1e1e] border border-white/5 hover:border-white/10 transition-colors"
+                    className="block p-3 rounded-xl bg-[#161b22] border border-[#30363d] hover:border-[#484f58] transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -498,13 +497,13 @@ export default function DashboardHome() {
           {/* Performance */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Performance</h3>
-            <div className="p-3 rounded-xl bg-[#1e1e1e] border border-white/5">
+            <div className="p-3 rounded-xl bg-[#161b22] border border-[#30363d]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-400">Weekly Goal</span>
                 <span className="text-sm font-medium text-white">75%</span>
               </div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-3">
-                <div className="h-full bg-primary rounded-full" style={{ width: '75%' }}></div>
+              <div className="h-2 bg-[#21262d] rounded-full overflow-hidden mb-3">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-orange-500 rounded-full" style={{ width: '75%' }}></div>
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -523,10 +522,11 @@ export default function DashboardHome() {
           <div>
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Upcoming</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/5">
-                <div className="text-center">
-                  <p className="text-[10px] text-primary uppercase font-semibold">OCT</p>
-                  <p className="text-lg font-bold text-white">12</p>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#161b22] border border-[#30363d]">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-400 leading-none">12</p>
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white text-sm">Team Sync</p>
@@ -540,8 +540,8 @@ export default function DashboardHome() {
 
       <style jsx>{`
         .stat-card {
-          background: #1e1e1e;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: #161b22;
+          border: 1px solid #30363d;
           border-radius: 12px;
           padding: 16px;
         }
