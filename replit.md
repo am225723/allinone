@@ -175,6 +175,9 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-02-02: Major navigation redesign - Desktop sidebar + Mobile bottom nav
+- 2026-02-02: Renamed OpenPhone to Quo throughout the app
+- 2026-02-02: New dashboard layout with 2x2 stat cards, task section, Quo/Gmail cards, and unified feed
 - 2026-01-31: Added avatar dropdown with logout/admin options in navigation bar
 - 2026-01-31: Added User Management tab to Admin Panel (create/delete users)
 - 2026-01-31: Created settings sub-pages: /settings/profile, /settings/notifications, /settings/integrations, /settings/security
