@@ -48,55 +48,50 @@ type FunctionName =
 
 interface InvokeOptions {
   body?: Record<string, any>;
+  params?: Record<string, any>;
   headers?: Record<string, string>;
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+}
+
+function buildQueryString(params: Record<string, any>): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      searchParams.append(key, String(value));
+    }
+  }
+  const qs = searchParams.toString();
+  return qs ? `?${qs}` : '';
 }
 
 export async function invokeFunction<T = any>(
   functionName: FunctionName,
   options: InvokeOptions = {}
 ): Promise<{ data: T | null; error: Error | null }> {
-  const client = getSupabaseClient();
-  
-  if (!client) {
-    console.warn('Supabase client not configured, falling back to API route');
-    return fallbackToApiRoute<T>(functionName, options);
-  }
-
-  try {
-    const { data, error } = await client.functions.invoke(functionName, {
-      body: options.body,
-      headers: options.headers,
-      method: options.method,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return { data: data as T, error: null };
-  } catch (err) {
-    console.warn(`Edge function ${functionName} failed, falling back to API route:`, err);
-    return fallbackToApiRoute<T>(functionName, options);
-  }
+  return fallbackToApiRoute<T>(functionName, options);
 }
 
 async function fallbackToApiRoute<T>(
   functionName: FunctionName,
   options: InvokeOptions
 ): Promise<{ data: T | null; error: Error | null }> {
-  const apiPath = functionNameToApiPath(functionName);
+  let apiPath = functionNameToApiPath(functionName);
+  const method = options.method || (options.body ? 'POST' : 'GET');
+  
+  if (method === 'GET' && options.params) {
+    apiPath += buildQueryString(options.params);
+  }
   
   try {
     const fetchOptions: RequestInit = {
-      method: options.method || (options.body ? 'POST' : 'GET'),
+      method,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
     };
 
-    if (options.body && fetchOptions.method !== 'GET') {
+    if (options.body && method !== 'GET') {
       fetchOptions.body = JSON.stringify(options.body);
     }
 
@@ -155,26 +150,26 @@ function functionNameToApiPath(functionName: FunctionName): string {
 export const supabaseFunctions = {
   stats: {
     get: (params?: { type?: string; limit?: number; days?: number }) =>
-      invokeFunction('stats', { body: params, method: 'GET' }),
+      invokeFunction('stats', { params, method: 'GET' }),
   },
   
   search: {
     query: (params: { q: string; type?: string; limit?: number }) =>
-      invokeFunction('search', { body: params }),
+      invokeFunction('search', { params, method: 'GET' }),
   },
   
   notifications: {
     list: (params?: { limit?: number; type?: string }) =>
-      invokeFunction('notifications', { body: params, method: 'GET' }),
+      invokeFunction('notifications', { params, method: 'GET' }),
     markRead: (ids: string[]) =>
       invokeFunction('notifications', { body: { ids, action: 'markRead' }, method: 'PATCH' }),
   },
   
   notes: {
     list: (params?: { status?: string; limit?: number; offset?: number }) =>
-      invokeFunction('notes', { body: params, method: 'GET' }),
+      invokeFunction('notes', { params, method: 'GET' }),
     get: (id: string) =>
-      invokeFunction('notes', { body: { id }, method: 'GET' }),
+      invokeFunction('notes', { params: { id }, method: 'GET' }),
     create: (data: { patient_name: string; patient_id?: string; template_id?: string; content: string; status?: string }) =>
       invokeFunction('notes', { body: data, method: 'POST' }),
     update: (id: string, data: Record<string, any>) =>
@@ -189,7 +184,7 @@ export const supabaseFunctions = {
     list: () =>
       invokeFunction('notes-templates', { method: 'GET' }),
     get: (id: string) =>
-      invokeFunction('notes-templates', { body: { id }, method: 'GET' }),
+      invokeFunction('notes-templates', { params: { id }, method: 'GET' }),
     create: (data: { name: string; description?: string; category?: string; structure: string }) =>
       invokeFunction('notes-templates', { body: data, method: 'POST' }),
     update: (id: string, data: Record<string, any>) =>
@@ -202,7 +197,7 @@ export const supabaseFunctions = {
     list: () =>
       invokeFunction('notes-prompts', { method: 'GET' }),
     get: (id: string) =>
-      invokeFunction('notes-prompts', { body: { id }, method: 'GET' }),
+      invokeFunction('notes-prompts', { params: { id }, method: 'GET' }),
     create: (data: { name: string; description?: string; system_prompt: string; category?: string }) =>
       invokeFunction('notes-prompts', { body: data, method: 'POST' }),
     update: (id: string, data: Record<string, any>) =>
@@ -213,9 +208,9 @@ export const supabaseFunctions = {
   
   tasks: {
     list: (params?: { status?: string; priority?: string; assignee?: string; limit?: number; offset?: number }) =>
-      invokeFunction('tasks', { body: params, method: 'GET' }),
+      invokeFunction('tasks', { params, method: 'GET' }),
     get: (id: string) =>
-      invokeFunction('tasks', { body: { id }, method: 'GET' }),
+      invokeFunction('tasks', { params: { id }, method: 'GET' }),
     create: (data: { title: string; description?: string; status?: string; priority?: string; due_date?: string; assignee?: string; checklist?: any[]; tags?: string[] }) =>
       invokeFunction('tasks', { body: data, method: 'POST' }),
     update: (id: string, data: Record<string, any>) =>
@@ -241,9 +236,9 @@ export const supabaseFunctions = {
   
   templates: {
     list: (params?: { category?: string }) =>
-      invokeFunction('templates', { body: params, method: 'GET' }),
+      invokeFunction('templates', { params, method: 'GET' }),
     get: (id: string) =>
-      invokeFunction('templates', { body: { id }, method: 'GET' }),
+      invokeFunction('templates', { params: { id }, method: 'GET' }),
     create: (data: { name: string; content: string; category?: string; variables?: string[] }) =>
       invokeFunction('templates', { body: data, method: 'POST' }),
     update: (id: string, data: Record<string, any>) =>
@@ -256,7 +251,7 @@ export const supabaseFunctions = {
   
   export: {
     get: (params: { type: string; format?: string; startDate?: string; endDate?: string }) =>
-      invokeFunction('export', { body: params, method: 'GET' }),
+      invokeFunction('export', { params, method: 'GET' }),
   },
   
   adminUsers: {
@@ -275,7 +270,7 @@ export const supabaseFunctions = {
       list: () =>
         invokeFunction('gmail-accounts', { method: 'GET' }),
       get: (id: string) =>
-        invokeFunction('gmail-accounts', { body: { id }, method: 'GET' }),
+        invokeFunction('gmail-accounts', { params: { id }, method: 'GET' }),
       delete: (id: string) =>
         invokeFunction('gmail-accounts', { body: { id }, method: 'DELETE' }),
     },
@@ -287,7 +282,7 @@ export const supabaseFunctions = {
     },
     rules: {
       list: (accountId?: string) =>
-        invokeFunction('gmail-rules', { body: accountId ? { account_id: accountId } : undefined, method: 'GET' }),
+        invokeFunction('gmail-rules', { params: accountId ? { account_id: accountId } : undefined, method: 'GET' }),
       create: (data: { gmail_account_id: string; rule_type: string; pattern: string; is_enabled?: boolean }) =>
         invokeFunction('gmail-rules', { body: data, method: 'POST' }),
       update: (id: string, data: Record<string, any>) =>
@@ -297,7 +292,7 @@ export const supabaseFunctions = {
     },
     activity: {
       list: (params?: { limit?: number }) =>
-        invokeFunction('gmail-activity', { body: params, method: 'GET' }),
+        invokeFunction('gmail-activity', { params, method: 'GET' }),
     },
     triage: (params?: { lookbackDays?: number }) =>
       invokeFunction('gmail-triage', { body: params, method: 'POST' }),
@@ -306,11 +301,11 @@ export const supabaseFunctions = {
   openphone: {
     summaries: {
       list: (params?: { limit?: number; offset?: number; needs_response?: boolean }) =>
-        invokeFunction('openphone-summaries', { body: params, method: 'GET' }),
+        invokeFunction('openphone-summaries', { params, method: 'GET' }),
     },
     drafts: {
       list: (params?: { status?: string; limit?: number }) =>
-        invokeFunction('openphone-drafts', { body: params, method: 'GET' }),
+        invokeFunction('openphone-drafts', { params, method: 'GET' }),
       update: (id: string, data: Record<string, any>) =>
         invokeFunction('openphone-drafts', { body: { id, ...data }, method: 'PATCH' }),
     },
@@ -324,7 +319,7 @@ export const supabaseFunctions = {
       invokeFunction('openphone-run', { body: params, method: 'POST' }),
     runs: {
       list: (params?: { limit?: number }) =>
-        invokeFunction('openphone-runs', { body: params, method: 'GET' }),
+        invokeFunction('openphone-runs', { params, method: 'GET' }),
     },
     settings: {
       get: () =>
