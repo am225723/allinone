@@ -5,10 +5,12 @@ A unified communications dashboard for managing Quo/OpenPhone and Gmail integrat
 
 ## Project Structure
 - `app/` - Next.js App Router pages and API routes
-- `app/api/` - API routes (most configured for Edge Runtime on Vercel)
+- `app/api/` - API routes (fallback for Supabase Edge Functions)
 - `components/` - React components
 - `lib/` - Utility libraries and services
+- `lib/supabase-functions.ts` - Supabase Edge Functions client helper
 - `supabase/` - Supabase configuration, migrations, and Edge Functions
+- `supabase/functions/` - Supabase Edge Functions (Deno)
 
 ## Tech Stack
 - **Framework**: Next.js 14 (App Router)
@@ -173,12 +175,114 @@ Push notification endpoints require authentication:
 2. App sends player ID to your backend
 3. Backend calls `/api/push/register` with PUSH_API_SECRET
 
+## Supabase Edge Functions
+
+The app uses Supabase Edge Functions (Deno) as the primary backend. Located in `supabase/functions/`:
+
+### Core Functions
+| Function | Description |
+|----------|-------------|
+| `stats` | Dashboard statistics |
+| `search` | Unified search |
+| `notifications` | Notification management |
+| `bulk-actions` | Bulk operations |
+| `ai-analyze` | AI analysis (Perplexity) |
+
+### OpenPhone/Quo Functions
+| Function | Description |
+|----------|-------------|
+| `openphone-summaries` | Conversation summaries |
+| `openphone-drafts` | Draft replies |
+| `openphone-approve` | Approve drafts |
+| `openphone-reject` | Reject drafts |
+| `openphone-run` | Run cleanup |
+| `openphone-runs` | Run history |
+| `openphone-send-approved` | Send approved messages |
+| `openphone-settings` | Settings management |
+
+### Gmail Functions
+| Function | Description |
+|----------|-------------|
+| `gmail-activity` | Activity logs |
+| `gmail-triage` | Email triage |
+| `gmail-accounts` | Account management |
+| `gmail-settings` | Gmail settings |
+| `gmail-rules` | Triage rules |
+
+### Clinical Notes Functions
+| Function | Description |
+|----------|-------------|
+| `notes` | Notes CRUD |
+| `notes-generate` | AI note generation |
+| `notes-templates` | Note templates |
+| `notes-prompts` | AI prompts |
+| `patient-stats` | Patient statistics |
+
+### Task Functions
+| Function | Description |
+|----------|-------------|
+| `tasks` | Tasks CRUD |
+| `tasks-ai` | AI task features |
+
+### Other Functions
+| Function | Description |
+|----------|-------------|
+| `templates` | Message templates |
+| `export` | Data export |
+| `admin-users` | User management |
+| `push-register` | Push device registration |
+| `push-send` | Send push notifications |
+| `cron-daily-summary` | Daily summary cron |
+| `cron-openphone-cleanup` | OpenPhone cleanup cron |
+
+### Using Edge Functions in Frontend
+
+```typescript
+import { supabaseFunctions } from '@/lib/supabase-functions';
+
+// Notes
+const { data } = await supabaseFunctions.notes.list({ limit: 20 });
+const { data } = await supabaseFunctions.notes.create({ patient_name: 'John', content: '...' });
+const { data } = await supabaseFunctions.notes.generate({ template_id: '...', patient_info: {...} });
+
+// Tasks
+const { data } = await supabaseFunctions.tasks.list({ status: 'pending' });
+const { data } = await supabaseFunctions.tasks.ai.suggestSubtasks('Task title');
+
+// Templates
+const { data } = await supabaseFunctions.noteTemplates.list();
+const { data } = await supabaseFunctions.templates.list();
+```
+
+### Deploying Edge Functions
+
+```bash
+# Deploy all functions
+supabase functions deploy
+
+# Deploy specific function
+supabase functions deploy notes
+```
+
+### Environment Variables for Edge Functions
+Set in Supabase Dashboard > Project Settings > Edge Functions:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PERPLEXITY_API_KEY`
+- `ONESIGNAL_APP_ID`
+- `ONESIGNAL_REST_API_KEY`
+- `CRON_SECRET`
+- `PUSH_API_SECRET`
+
 ## Development
 - Server runs on port 5000
 - Uses `npm run dev` for development
-- Edge functions work locally in development mode
+- Supabase Edge Functions auto-fallback to Next.js API routes if not deployed
 
 ## Recent Changes
+- 2026-02-02: Migrated to Supabase Edge Functions (Deno) as primary backend
+- 2026-02-02: Created 31 Supabase Edge Functions for all API operations
+- 2026-02-02: Added supabase-functions.ts helper for frontend integration
 - 2026-02-02: Added Clinical Notes module (/notes, /notes/create, /notes/prompts)
 - 2026-02-02: Added colorful navigation with per-item accent colors (blue/emerald/orange/red/violet/cyan)
 - 2026-02-02: Added glow effects to all dashboard cards (Quo, Gmail, Feed, Performance, Tasks, Upcoming)

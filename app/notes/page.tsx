@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabaseFunctions } from '@/lib/supabase-functions';
 
 interface NoteTemplate {
   id: string;
@@ -37,9 +38,8 @@ export default function NotesPage() {
 
   async function loadTemplates() {
     try {
-      const res = await fetch('/api/notes/templates');
-      const data = await res.json();
-      if (data.ok && data.templates?.length > 0) {
+      const { data, error } = await supabaseFunctions.noteTemplates.list();
+      if (!error && data?.ok && data.templates?.length > 0) {
         setTemplates(data.templates.map((t: any) => ({
           id: t.id,
           name: t.name,
@@ -54,9 +54,8 @@ export default function NotesPage() {
 
   async function loadNotes() {
     try {
-      const res = await fetch('/api/notes?limit=20');
-      const data = await res.json();
-      if (data.ok) {
+      const { data, error } = await supabaseFunctions.notes.list({ limit: 20 });
+      if (!error && data?.ok) {
         setNotes(data.notes || []);
       }
     } catch (e) {
