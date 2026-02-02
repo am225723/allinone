@@ -22,26 +22,16 @@ export default function Sidebar() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user has admin access (auto-login based on role)
     checkAdminAccess();
   }, []);
 
   async function checkAdminAccess() {
     try {
-      // Check if admin cookie exists or if user has admin role
-      const adminCookie = document.cookie.split(';').find(c => c.trim().startsWith('admin_authenticated='));
-      if (adminCookie?.includes('true')) {
-        setIsAdmin(true);
-        return;
-      }
-
-      // Check user role from API
+      // Check user role from API (based on authenticated user)
       const res = await fetch('/api/auth/check-role');
       const data = await res.json();
       if (data.ok && data.role === 'admin') {
         setIsAdmin(true);
-        // Auto-set admin cookie for admin users
-        document.cookie = 'admin_authenticated=true; path=/; max-age=86400';
       }
     } catch (e) {
       console.error('Error checking admin access:', e);
@@ -128,7 +118,7 @@ export default function Sidebar() {
           </span>
         </button>
 
-        {/* Admin Panel - shown if user has admin access */}
+        {/* Admin Panel - shown if user has admin role */}
         {isAdmin && (
           <Link
             href="/admin"

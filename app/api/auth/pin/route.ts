@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Get user with matching PIN from comm_users table
     const { data, error } = await supabaseServer
       .from('comm_users')
-      .select('id, pin, name')
+      .select('id, pin, name, role')
       .eq('pin', pin)
       .eq('is_active', true)
       .single();
@@ -22,9 +21,23 @@ export async function POST(request: NextRequest) {
       console.error('Error fetching user:', error);
       // For development/fallback, accept default PIN
       if (pin === '1234') {
-        const response = NextResponse.json({ ok: true });
+        const response = NextResponse.json({ ok: true, role: 'user' });
         response.cookies.set('pin_authenticated', 'true', {
-          httpOnly: false,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/',
+        });
+        response.cookies.set('user_id', 'default', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/',
+        });
+        response.cookies.set('user_role', 'user', {
+          httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7, // 7 days
@@ -41,10 +54,24 @@ export async function POST(request: NextRequest) {
       .update({ last_login: new Date().toISOString() })
       .eq('id', data.id);
 
-    // Set authentication cookie
-    const response = NextResponse.json({ ok: true });
+    // Set authentication cookies (all httpOnly for security)
+    const response = NextResponse.json({ ok: true, role: data.role || 'user' });
     response.cookies.set('pin_authenticated', 'true', {
-      httpOnly: false,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+    response.cookies.set('user_id', data.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+    response.cookies.set('user_role', data.role || 'user', {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
@@ -59,8 +86,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Logout - clear the cookie
+  // Logout - clear all auth cookies
   const response = NextResponse.json({ ok: true });
   response.cookies.delete('pin_authenticated');
+  response.cookies.delete('user_id');
+  response.cookies.delete('user_role');
   return response;
 }

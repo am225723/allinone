@@ -58,19 +58,13 @@ interface PatientDashboardStats {
 
 interface StatCard {
   id: string;
+  metricKey: string;
   label: string;
   value: number | string;
   icon: string;
   color: string;
   glowColor: string;
 }
-
-const defaultStatCards: StatCard[] = [
-  { id: '1', label: 'Pending Notes', value: 0, icon: 'edit_note', color: 'from-rose-500/20 to-rose-600/10', glowColor: 'shadow-rose-500/20' },
-  { id: '2', label: 'Appointments', value: 0, icon: 'calendar_month', color: 'from-violet-500/20 to-violet-600/10', glowColor: 'shadow-violet-500/20' },
-  { id: '3', label: 'Total Comms', value: 0, icon: 'forum', color: 'from-cyan-500/20 to-cyan-600/10', glowColor: 'shadow-cyan-500/20' },
-  { id: '4', label: 'Response Rate', value: '0%', icon: 'trending_up', color: 'from-emerald-500/20 to-emerald-600/10', glowColor: 'shadow-emerald-500/20' },
-];
 
 const availableMetrics = [
   { key: 'pendingNotes', label: 'Pending Notes', icon: 'edit_note', color: 'from-rose-500/20 to-rose-600/10', glowColor: 'shadow-rose-500/20' },
@@ -83,6 +77,15 @@ const availableMetrics = [
   { key: 'highPriority', label: 'High Priority', icon: 'priority_high', color: 'from-red-500/20 to-red-600/10', glowColor: 'shadow-red-500/20' },
 ];
 
+const defaultCards: StatCard[] = [
+  { id: '1', metricKey: 'pendingNotes', label: 'Pending Notes', value: 0, icon: 'edit_note', color: 'from-rose-500/20 to-rose-600/10', glowColor: 'shadow-rose-500/20' },
+  { id: '2', metricKey: 'appointments', label: 'Appointments', value: 0, icon: 'calendar_month', color: 'from-violet-500/20 to-violet-600/10', glowColor: 'shadow-violet-500/20' },
+  { id: '3', metricKey: 'totalComms', label: 'Total Comms', value: 0, icon: 'forum', color: 'from-cyan-500/20 to-cyan-600/10', glowColor: 'shadow-cyan-500/20' },
+  { id: '4', metricKey: 'responseRate', label: 'Response Rate', value: '0%', icon: 'trending_up', color: 'from-emerald-500/20 to-emerald-600/10', glowColor: 'shadow-emerald-500/20' },
+];
+
+const STORAGE_KEY = 'dashboard_stat_cards';
+
 export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [patientStats, setPatientStats] = useState<PatientDashboardStats | null>(null);
@@ -91,7 +94,29 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showCardEditor, setShowCardEditor] = useState(false);
-  const [statCards, setStatCards] = useState<StatCard[]>(defaultStatCards);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [statCards, setStatCards] = useState<StatCard[]>(defaultCards);
+
+  // Load saved cards from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setStatCards(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Error loading saved cards:', e);
+    }
+  }, []);
+
+  // Save cards to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statCards));
+    } catch (e) {
+      console.error('Error saving cards:', e);
+    }
+  }, [statCards]);
 
   useEffect(() => {
     loadStats();
@@ -115,22 +140,25 @@ export default function DashboardHome() {
     }
   }, [stats, patientStats, tasks]);
 
+  function getMetricValue(metricKey: string): number | string {
+    switch (metricKey) {
+      case 'pendingNotes': return patientStats?.notesPending || 0;
+      case 'appointments': return patientStats?.appointmentsThisWeek || 0;
+      case 'totalComms': return stats?.overall.totalCommunications || 0;
+      case 'responseRate': return `${stats?.overall.responseRate || 0}%`;
+      case 'unreadEmails': return stats?.gmail.unreadEmails || 0;
+      case 'activeToday': return stats?.overall.activeToday || 0;
+      case 'pendingTasks': return tasks.length;
+      case 'highPriority': return stats?.gmail.highPriority || 0;
+      default: return 0;
+    }
+  }
+
   function updateStatCardValues() {
-    setStatCards(prev => prev.map(card => {
-      let value: number | string = 0;
-      switch (card.label) {
-        case 'Pending Notes': value = patientStats?.notesPending || 0; break;
-        case 'Appointments': value = patientStats?.appointmentsThisWeek || 0; break;
-        case 'Total Comms': value = stats?.overall.totalCommunications || 0; break;
-        case 'Response Rate': value = `${stats?.overall.responseRate || 0}%`; break;
-        case 'Unread Emails': value = stats?.gmail.unreadEmails || 0; break;
-        case 'Active Today': value = stats?.overall.activeToday || 0; break;
-        case 'Pending Tasks': value = tasks.length; break;
-        case 'High Priority': value = stats?.gmail.highPriority || 0; break;
-        default: value = 0;
-      }
-      return { ...card, value };
-    }));
+    setStatCards(prev => prev.map(card => ({
+      ...card,
+      value: getMetricValue(card.metricKey)
+    })));
   }
 
   function addStatCard(metricKey: string) {
@@ -139,14 +167,35 @@ export default function DashboardHome() {
     
     const newCard: StatCard = {
       id: Date.now().toString(),
+      metricKey: metric.key,
       label: metric.label,
-      value: 0,
+      value: getMetricValue(metric.key),
       icon: metric.icon,
       color: metric.color,
       glowColor: metric.glowColor,
     };
     setStatCards(prev => [...prev, newCard]);
     setShowCardEditor(false);
+  }
+
+  function changeCardMetric(cardId: string, metricKey: string) {
+    const metric = availableMetrics.find(m => m.key === metricKey);
+    if (!metric) return;
+    
+    setStatCards(prev => prev.map(card => 
+      card.id === cardId 
+        ? {
+            ...card,
+            metricKey: metric.key,
+            label: metric.label,
+            icon: metric.icon,
+            color: metric.color,
+            glowColor: metric.glowColor,
+            value: getMetricValue(metric.key),
+          }
+        : card
+    ));
+    setEditingCardId(null);
   }
 
   function removeStatCard(id: string) {
@@ -285,19 +334,54 @@ export default function DashboardHome() {
             </div>
           </div>
 
-          {/* Stat Cards with Glow */}
+          {/* Stat Cards with Glow and Edit */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
             {statCards.map((card) => (
               <div 
                 key={card.id} 
                 className={`group relative p-4 rounded-2xl bg-gradient-to-br ${card.color} backdrop-blur-sm border border-white/10 shadow-lg ${card.glowColor} hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}
               >
-                <button
-                  onClick={() => removeStatCard(card.id)}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-black/20 transition-all"
-                >
-                  <span className="material-symbols-outlined text-white/50 text-sm">close</span>
-                </button>
+                {/* Edit/Remove buttons */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={() => setEditingCardId(editingCardId === card.id ? null : card.id)}
+                    className="p-1 rounded-lg hover:bg-black/20 transition-all"
+                    title="Edit metric"
+                  >
+                    <span className="material-symbols-outlined text-white/50 text-sm">edit</span>
+                  </button>
+                  <button
+                    onClick={() => removeStatCard(card.id)}
+                    className="p-1 rounded-lg hover:bg-black/20 transition-all"
+                    title="Remove card"
+                  >
+                    <span className="material-symbols-outlined text-white/50 text-sm">close</span>
+                  </button>
+                </div>
+                
+                {/* Card Edit Dropdown */}
+                {editingCardId === card.id && (
+                  <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-xl bg-[#161b22] border border-white/10 shadow-xl z-10">
+                    <p className="text-xs text-gray-400 mb-2 px-2">Change metric:</p>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {availableMetrics.map((metric) => (
+                        <button
+                          key={metric.key}
+                          onClick={() => changeCardMetric(card.id, metric.key)}
+                          className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-colors ${
+                            card.metricKey === metric.key 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : 'hover:bg-white/5 text-white'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm">{metric.icon}</span>
+                          <span className="text-xs">{metric.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-white/60 mb-1">{card.label}</p>
