@@ -49,11 +49,8 @@ interface ActivityItem {
 interface PatientDashboardStats {
   notesPending: number;
   appointmentsThisWeek: number;
+  appointmentsToday: number;
   topIcd10: Array<{ code: string; label: string; count: number }>;
-  appointmentsToday: {
-    dateLabel: string;
-    items: Array<{ time: string; patient: string; type: string }>;
-  };
 }
 
 interface StatCard {
@@ -69,11 +66,16 @@ interface StatCard {
 const availableMetrics = [
   { key: 'pendingNotes', label: 'Pending Notes', icon: 'edit_note', color: 'from-rose-500/20 to-rose-600/10', glowColor: 'shadow-rose-500/20' },
   { key: 'appointments', label: 'Appointments', icon: 'calendar_month', color: 'from-violet-500/20 to-violet-600/10', glowColor: 'shadow-violet-500/20' },
+  { key: 'appointmentsToday', label: 'Appointments Today', icon: 'event_available', color: 'from-purple-500/20 to-purple-600/10', glowColor: 'shadow-purple-500/20' },
   { key: 'totalComms', label: 'Total Comms', icon: 'forum', color: 'from-cyan-500/20 to-cyan-600/10', glowColor: 'shadow-cyan-500/20' },
   { key: 'responseRate', label: 'Response Rate', icon: 'trending_up', color: 'from-emerald-500/20 to-emerald-600/10', glowColor: 'shadow-emerald-500/20' },
   { key: 'unreadEmails', label: 'Unread Emails', icon: 'mark_email_unread', color: 'from-amber-500/20 to-amber-600/10', glowColor: 'shadow-amber-500/20' },
+  { key: 'todaysEmails', label: 'Today\'s Emails', icon: 'mail', color: 'from-red-500/20 to-red-600/10', glowColor: 'shadow-red-500/20' },
+  { key: 'todaysMessages', label: 'Today\'s Messages', icon: 'sms', color: 'from-orange-500/20 to-orange-600/10', glowColor: 'shadow-orange-500/20' },
+  { key: 'todaysCalls', label: 'Today\'s Calls', icon: 'call', color: 'from-teal-500/20 to-teal-600/10', glowColor: 'shadow-teal-500/20' },
   { key: 'activeToday', label: 'Active Today', icon: 'bolt', color: 'from-blue-500/20 to-blue-600/10', glowColor: 'shadow-blue-500/20' },
-  { key: 'pendingTasks', label: 'Pending Tasks', icon: 'task_alt', color: 'from-orange-500/20 to-orange-600/10', glowColor: 'shadow-orange-500/20' },
+  { key: 'pendingTasks', label: 'Pending Tasks', icon: 'task_alt', color: 'from-indigo-500/20 to-indigo-600/10', glowColor: 'shadow-indigo-500/20' },
+  { key: 'tasksToday', label: 'Tasks Today', icon: 'checklist', color: 'from-pink-500/20 to-pink-600/10', glowColor: 'shadow-pink-500/20' },
   { key: 'highPriority', label: 'High Priority', icon: 'priority_high', color: 'from-red-500/20 to-red-600/10', glowColor: 'shadow-red-500/20' },
 ];
 
@@ -97,7 +99,6 @@ export default function DashboardHome() {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [statCards, setStatCards] = useState<StatCard[]>(defaultCards);
 
-  // Load saved cards from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -109,7 +110,6 @@ export default function DashboardHome() {
     }
   }, []);
 
-  // Save cards to localStorage when they change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(statCards));
@@ -144,11 +144,16 @@ export default function DashboardHome() {
     switch (metricKey) {
       case 'pendingNotes': return patientStats?.notesPending || 0;
       case 'appointments': return patientStats?.appointmentsThisWeek || 0;
+      case 'appointmentsToday': return patientStats?.appointmentsToday || 0;
       case 'totalComms': return stats?.overall.totalCommunications || 0;
       case 'responseRate': return `${stats?.overall.responseRate || 0}%`;
       case 'unreadEmails': return stats?.gmail.unreadEmails || 0;
+      case 'todaysEmails': return stats?.gmail.processedToday || 0;
+      case 'todaysMessages': return stats?.openphone.todayActivity || 0;
+      case 'todaysCalls': return 0;
       case 'activeToday': return stats?.overall.activeToday || 0;
-      case 'pendingTasks': return tasks.length;
+      case 'pendingTasks': return tasks.filter(t => t.status === 'pending').length;
+      case 'tasksToday': return tasks.length;
       case 'highPriority': return stats?.gmail.highPriority || 0;
       default: return 0;
     }
@@ -222,7 +227,7 @@ export default function DashboardHome() {
         const priorityOrder: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
         const sorted = (data.tasks || [])
           .sort((a: Task, b: Task) => priorityOrder[a.priority] - priorityOrder[b.priority])
-          .slice(0, 3);
+          .slice(0, 5);
         setTasks(sorted);
       }
     } catch (error) {
@@ -334,15 +339,38 @@ export default function DashboardHome() {
             </div>
           </div>
 
+          {/* Add Card Editor - Above Stat Cards */}
+          {showCardEditor && (
+            <div className="mb-4 p-4 rounded-2xl bg-[#161b22]/90 backdrop-blur border border-white/10 shadow-xl z-50 relative">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white">Choose a metric to add:</h3>
+                <button onClick={() => setShowCardEditor(false)} className="p-1 rounded-lg hover:bg-white/10">
+                  <span className="material-symbols-outlined text-gray-400 text-lg">close</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {availableMetrics.map((metric) => (
+                  <button
+                    key={metric.key}
+                    onClick={() => addStatCard(metric.key)}
+                    className={`flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br ${metric.color} border border-white/10 hover:border-white/20 transition-all text-left`}
+                  >
+                    <span className="material-symbols-outlined text-white/70">{metric.icon}</span>
+                    <span className="text-sm text-white">{metric.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stat Cards with Glow and Edit */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 relative">
             {statCards.map((card) => (
               <div 
                 key={card.id} 
                 className={`group relative p-4 rounded-2xl bg-gradient-to-br ${card.color} backdrop-blur-sm border border-white/10 shadow-lg ${card.glowColor} hover:shadow-xl transition-all duration-300 hover:scale-[1.02]`}
               >
-                {/* Edit/Remove buttons */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
                   <button
                     onClick={() => setEditingCardId(editingCardId === card.id ? null : card.id)}
                     className="p-1 rounded-lg hover:bg-black/20 transition-all"
@@ -359,9 +387,8 @@ export default function DashboardHome() {
                   </button>
                 </div>
                 
-                {/* Card Edit Dropdown */}
                 {editingCardId === card.id && (
-                  <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-xl bg-[#161b22] border border-white/10 shadow-xl z-10">
+                  <div className="absolute bottom-full left-0 right-0 mb-2 p-2 rounded-xl bg-[#161b22] border border-white/10 shadow-xl z-50">
                     <p className="text-xs text-gray-400 mb-2 px-2">Change metric:</p>
                     <div className="space-y-1 max-h-48 overflow-y-auto">
                       {availableMetrics.map((metric) => (
@@ -392,7 +419,6 @@ export default function DashboardHome() {
               </div>
             ))}
             
-            {/* Add Card Button */}
             <button
               onClick={() => setShowCardEditor(!showCardEditor)}
               className="p-4 rounded-2xl border-2 border-dashed border-white/20 hover:border-blue-400/50 hover:bg-blue-400/5 transition-all flex flex-col items-center justify-center gap-2 min-h-[100px]"
@@ -401,25 +427,6 @@ export default function DashboardHome() {
               <span className="text-xs text-white/40">Add Card</span>
             </button>
           </div>
-
-          {/* Card Editor Dropdown */}
-          {showCardEditor && (
-            <div className="mb-6 p-4 rounded-2xl bg-[#161b22]/90 backdrop-blur border border-white/10">
-              <h3 className="text-sm font-semibold text-white mb-3">Choose a metric to add:</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                {availableMetrics.map((metric) => (
-                  <button
-                    key={metric.key}
-                    onClick={() => addStatCard(metric.key)}
-                    className="flex items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-left"
-                  >
-                    <span className="material-symbols-outlined text-blue-400">{metric.icon}</span>
-                    <span className="text-sm text-white">{metric.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Mobile New Task Button */}
           <button 
@@ -430,17 +437,17 @@ export default function DashboardHome() {
             New Task
           </button>
 
-          {/* Integration Cards */}
+          {/* Integration Cards with Glow */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* Quo / SMS Card */}
             {stats && (
-              <div className="p-5 rounded-2xl bg-[#161b22]/80 backdrop-blur border border-white/10 shadow-lg shadow-orange-500/5">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 backdrop-blur border border-orange-500/20 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center shadow-lg shadow-orange-500/20">
                       <span className="material-symbols-outlined text-orange-400 text-lg">sms</span>
                     </div>
-                    <span className="font-semibold text-white">Quo / SMS</span>
+                    <span className="font-semibold text-orange-100">Quo / SMS</span>
                   </div>
                   <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     Active
@@ -448,32 +455,32 @@ export default function DashboardHome() {
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center mb-4">
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Pending</p>
+                    <p className="text-[10px] text-orange-300/50 uppercase">Pending</p>
                     <p className="text-xl font-bold text-white">{stats.openphone.pendingDrafts}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Approved</p>
+                    <p className="text-[10px] text-orange-300/50 uppercase">Approved</p>
                     <p className="text-xl font-bold text-white">{stats.openphone.approvedDrafts}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Response</p>
+                    <p className="text-[10px] text-orange-300/50 uppercase">Response</p>
                     <p className="text-xl font-bold text-white">{stats.openphone.needsResponse}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Activity</p>
+                    <p className="text-[10px] text-orange-300/50 uppercase">Activity</p>
                     <p className="text-xl font-bold text-white">{stats.openphone.todayActivity}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Link 
                     href="/openphone/run"
-                    className="py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium text-center transition-all shadow-lg shadow-blue-500/20"
+                    className="py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-medium text-center transition-all shadow-lg shadow-orange-500/20"
                   >
                     Start Run
                   </Link>
                   <Link 
                     href="/openphone/review"
-                    className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+                    className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-orange-500/20"
                   >
                     Review Drafts
                   </Link>
@@ -483,13 +490,13 @@ export default function DashboardHome() {
 
             {/* Gmail Card */}
             {stats && (
-              <div className="p-5 rounded-2xl bg-[#161b22]/80 backdrop-blur border border-white/10 shadow-lg shadow-red-500/5">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/5 backdrop-blur border border-red-500/20 shadow-lg shadow-red-500/10 hover:shadow-red-500/20 transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/20">
                       <span className="material-symbols-outlined text-red-400 text-lg">mail</span>
                     </div>
-                    <span className="font-semibold text-white">Gmail</span>
+                    <span className="font-semibold text-red-100">Gmail</span>
                   </div>
                   <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                     Syncing
@@ -497,32 +504,32 @@ export default function DashboardHome() {
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center mb-4">
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Unread</p>
+                    <p className="text-[10px] text-red-300/50 uppercase">Unread</p>
                     <p className="text-xl font-bold text-white">{stats.gmail.unreadEmails}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Drafts</p>
+                    <p className="text-[10px] text-red-300/50 uppercase">Drafts</p>
                     <p className="text-xl font-bold text-white">{stats.gmail.pendingDrafts}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Priority</p>
+                    <p className="text-[10px] text-red-300/50 uppercase">Priority</p>
                     <p className="text-xl font-bold text-white">{stats.gmail.highPriority}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Processed</p>
+                    <p className="text-[10px] text-red-300/50 uppercase">Processed</p>
                     <p className="text-xl font-bold text-white">{stats.gmail.processedToday}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Link 
                     href="/gmail/triage"
-                    className="py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium text-center transition-all shadow-lg shadow-blue-500/20"
+                    className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium text-center transition-all shadow-lg shadow-red-500/20"
                   >
                     Start Triage
                   </Link>
                   <Link 
                     href="/gmail/activity"
-                    className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-white/10"
+                    className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium text-center transition-colors border border-red-500/20"
                   >
                     View Activity
                   </Link>
@@ -531,12 +538,12 @@ export default function DashboardHome() {
             )}
           </div>
 
-          {/* Recent Unified Feed */}
-          <div className="rounded-2xl bg-[#161b22]/80 backdrop-blur border border-white/10 p-5">
+          {/* Recent Unified Feed with Glow */}
+          <div className="rounded-2xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 backdrop-blur border border-blue-500/10 shadow-lg shadow-blue-500/5 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Recent Unified Feed</h2>
+              <h2 className="text-lg font-semibold text-blue-100">Recent Unified Feed</h2>
               <button className="p-1.5 rounded-xl hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined text-gray-500 text-lg">tune</span>
+                <span className="material-symbols-outlined text-blue-400/50 text-lg">tune</span>
               </button>
             </div>
             <div className="space-y-3">
@@ -553,8 +560,8 @@ export default function DashboardHome() {
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                       item.type === 'openphone' 
-                        ? 'bg-orange-500/20 text-orange-400' 
-                        : 'bg-red-500/20 text-red-400'
+                        ? 'bg-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/20' 
+                        : 'bg-red-500/20 text-red-400 shadow-lg shadow-red-500/20'
                     }`}>
                       {item.sender?.charAt(0)?.toUpperCase() || (item.type === 'openphone' ? 'Q' : 'G')}
                     </div>
@@ -591,8 +598,8 @@ export default function DashboardHome() {
           {/* Mobile Tasks Section */}
           <div className="lg:hidden mt-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Today's Tasks</h2>
-              <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-gray-400">{tasks.length}</span>
+              <h2 className="text-sm font-semibold text-violet-300 uppercase tracking-wide">Today's Tasks</h2>
+              <span className="text-xs px-2 py-1 rounded-full bg-violet-500/20 text-violet-400">{tasks.length}</span>
             </div>
             <div className="space-y-2">
               {tasks.length === 0 ? (
@@ -605,13 +612,13 @@ export default function DashboardHome() {
                   <Link
                     key={task.id}
                     href="/tasks"
-                    className="block p-4 rounded-2xl bg-[#161b22]/80 border border-white/10 hover:border-white/20 transition-colors"
+                    className="block p-4 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20 hover:border-violet-500/30 transition-colors shadow-lg shadow-violet-500/5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-white">{task.title}</p>
                         {task.due_date && (
-                          <p className="text-xs text-gray-500 mt-1">{formatDueTime(task.due_date)}</p>
+                          <p className="text-xs text-violet-300/50 mt-1">{formatDueTime(task.due_date)}</p>
                         )}
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-lg border ${getPriorityStyle(task.priority)}`}>
@@ -626,7 +633,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Right Sidebar - Desktop Only */}
-        <div className="hidden lg:block w-72 fixed right-0 top-0 h-screen bg-[#0d1117]/90 backdrop-blur border-l border-white/5 p-4 overflow-y-auto">
+        <div className="hidden lg:block w-72 fixed right-0 top-0 h-screen bg-gradient-to-b from-[#0d1117]/95 to-[#0a0f18]/95 backdrop-blur border-l border-white/5 p-4 overflow-y-auto">
           {/* New Task Button */}
           <button 
             onClick={() => setShowTaskModal(true)}
@@ -636,11 +643,11 @@ export default function DashboardHome() {
             New Task
           </button>
 
-          {/* Today's Tasks */}
+          {/* Today's Tasks with Glow */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Today's Tasks</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-gray-400">{tasks.length}</span>
+              <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wide">Today's Tasks</h3>
+              <span className="text-xs px-2 py-1 rounded-full bg-violet-500/20 text-violet-400">{tasks.length}</span>
             </div>
             <div className="space-y-2">
               {tasks.length === 0 ? (
@@ -652,13 +659,13 @@ export default function DashboardHome() {
                   <Link
                     key={task.id}
                     href="/tasks"
-                    className="block p-3 rounded-2xl bg-[#161b22]/80 border border-white/10 hover:border-white/20 transition-colors"
+                    className="block p-3 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20 hover:border-violet-500/30 transition-colors shadow-lg shadow-violet-500/5"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-white text-sm">{task.title}</p>
                         {task.due_date && (
-                          <p className="text-xs text-gray-500 mt-1">{formatDueTime(task.due_date)}</p>
+                          <p className="text-xs text-violet-300/50 mt-1">{formatDueTime(task.due_date)}</p>
                         )}
                       </div>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-lg border ${getPriorityStyle(task.priority)}`}>
@@ -671,43 +678,43 @@ export default function DashboardHome() {
             </div>
           </div>
 
-          {/* Performance */}
+          {/* Performance with Glow */}
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Performance</h3>
-            <div className="p-4 rounded-2xl bg-[#161b22]/80 border border-white/10">
+            <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wide mb-3">Performance</h3>
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Weekly Goal</span>
+                <span className="text-sm text-emerald-300/70">Weekly Goal</span>
                 <span className="text-sm font-medium text-white">75%</span>
               </div>
               <div className="h-2.5 bg-white/10 rounded-full overflow-hidden mb-4">
-                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500 rounded-full" style={{ width: '75%' }}></div>
+                <div className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full shadow-lg shadow-emerald-500/30" style={{ width: '75%' }}></div>
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-2xl font-bold text-white">{stats?.overall.activeToday || 0}</p>
-                  <p className="text-xs text-gray-500">Actions</p>
+                  <p className="text-xs text-emerald-300/50">Actions</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-semibold text-emerald-400">+12%</p>
-                  <p className="text-xs text-gray-500">vs last week</p>
+                  <p className="text-xs text-emerald-300/50">vs last week</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Upcoming */}
+          {/* Upcoming with Glow */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Upcoming</h3>
+            <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Upcoming</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#161b22]/80 border border-white/10">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-500/20 flex items-center justify-center shadow-lg shadow-cyan-500/20">
                   <div className="text-center">
-                    <p className="text-lg font-bold text-blue-400 leading-none">12</p>
+                    <p className="text-lg font-bold text-cyan-400 leading-none">12</p>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white text-sm">Team Sync</p>
-                  <p className="text-xs text-gray-500">10:00 AM - 11:00 AM</p>
+                  <p className="text-xs text-cyan-300/50">10:00 AM - 11:00 AM</p>
                 </div>
               </div>
             </div>

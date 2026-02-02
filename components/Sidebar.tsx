@@ -5,16 +5,28 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 const navItems = [
-  { href: '/', icon: 'grid_view', label: 'Dashboard' },
-  { href: '/patients', icon: 'clinical_notes', label: 'Patients' },
-  { href: '/openphone', icon: 'sms', label: 'Quo' },
-  { href: '/gmail', icon: 'mail', label: 'Mail' },
-  { href: '/tasks', icon: 'task_alt', label: 'Tasks' },
+  { href: '/', icon: 'grid_view', label: 'Dashboard', color: 'blue' },
+  { href: '/patients', icon: 'clinical_notes', label: 'Patients', color: 'emerald' },
+  { href: '/openphone', icon: 'sms', label: 'Quo', color: 'orange' },
+  { href: '/gmail', icon: 'mail', label: 'Mail', color: 'red' },
+  { href: '/tasks', icon: 'task_alt', label: 'Tasks', color: 'violet' },
+  { href: '/notes', icon: 'description', label: 'Notes', color: 'cyan' },
 ];
 
 const bottomItems = [
-  { href: '/settings', icon: 'settings', label: 'Settings' },
+  { href: '/settings', icon: 'settings', label: 'Settings', color: 'gray' },
 ];
+
+const colorClasses: Record<string, { active: string; inactive: string; hover: string }> = {
+  blue: { active: 'bg-blue-500/15 text-blue-400', inactive: 'text-blue-400/50', hover: 'hover:bg-blue-500/10 hover:text-blue-400' },
+  emerald: { active: 'bg-emerald-500/15 text-emerald-400', inactive: 'text-emerald-400/50', hover: 'hover:bg-emerald-500/10 hover:text-emerald-400' },
+  orange: { active: 'bg-orange-500/15 text-orange-400', inactive: 'text-orange-400/50', hover: 'hover:bg-orange-500/10 hover:text-orange-400' },
+  red: { active: 'bg-red-500/15 text-red-400', inactive: 'text-red-400/50', hover: 'hover:bg-red-500/10 hover:text-red-400' },
+  violet: { active: 'bg-violet-500/15 text-violet-400', inactive: 'text-violet-400/50', hover: 'hover:bg-violet-500/10 hover:text-violet-400' },
+  cyan: { active: 'bg-cyan-500/15 text-cyan-400', inactive: 'text-cyan-400/50', hover: 'hover:bg-cyan-500/10 hover:text-cyan-400' },
+  gray: { active: 'bg-gray-500/15 text-gray-400', inactive: 'text-gray-500', hover: 'hover:bg-white/5 hover:text-gray-300' },
+  amber: { active: 'bg-amber-500/15 text-amber-400', inactive: 'text-amber-500/70', hover: 'hover:bg-amber-500/10 hover:text-amber-400' },
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -27,7 +39,6 @@ export default function Sidebar() {
 
   async function checkAdminAccess() {
     try {
-      // Check user role from API (based on authenticated user)
       const res = await fetch('/api/auth/check-role');
       const data = await res.json();
       if (data.ok && data.role === 'admin') {
@@ -45,6 +56,14 @@ export default function Sidebar() {
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
+  };
+
+  const getNavClasses = (item: typeof navItems[0]) => {
+    const colors = colorClasses[item.color] || colorClasses.gray;
+    if (isActive(item.href)) {
+      return colors.active;
+    }
+    return `${colors.inactive} ${colors.hover}`;
   };
 
   return (
@@ -70,11 +89,7 @@ export default function Sidebar() {
             key={item.href}
             href={item.href}
             title={item.label}
-            className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${
-              isActive(item.href)
-                ? 'bg-blue-500/15 text-blue-400'
-                : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${getNavClasses(item)}`}
           >
             <span className="material-symbols-outlined text-xl flex-shrink-0">{item.icon}</span>
             <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -91,11 +106,7 @@ export default function Sidebar() {
             key={item.href}
             href={item.href}
             title={item.label}
-            className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${
-              isActive(item.href)
-                ? 'bg-blue-500/15 text-blue-400'
-                : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${getNavClasses(item)}`}
           >
             <span className="material-symbols-outlined text-xl flex-shrink-0">{item.icon}</span>
             <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -108,7 +119,7 @@ export default function Sidebar() {
         <button
           onClick={toggleTheme}
           title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="flex items-center gap-3 h-11 px-2.5 rounded-xl text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-all"
+          className="flex items-center gap-3 h-11 px-2.5 rounded-xl text-indigo-400/50 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
         >
           <span className="material-symbols-outlined text-xl flex-shrink-0">
             {isDarkMode ? 'dark_mode' : 'light_mode'}
@@ -125,8 +136,8 @@ export default function Sidebar() {
             title="Admin Panel"
             className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${
               isActive('/admin')
-                ? 'bg-amber-500/15 text-amber-400'
-                : 'text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-400'
+                ? colorClasses.amber.active
+                : `${colorClasses.amber.inactive} ${colorClasses.amber.hover}`
             }`}
           >
             <span className="material-symbols-outlined text-xl flex-shrink-0">
