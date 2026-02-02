@@ -364,7 +364,7 @@ export default function DashboardHome() {
           )}
 
           {/* Stat Cards with Glow and Edit */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 relative">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 relative z-20 overflow-visible">
             {statCards.map((card) => (
               <div 
                 key={card.id} 
@@ -388,7 +388,7 @@ export default function DashboardHome() {
                 </div>
                 
                 {editingCardId === card.id && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 p-2 rounded-xl bg-[#161b22] border border-white/10 shadow-xl z-50">
+                  <div className="absolute bottom-full left-0 right-0 mb-2 p-2 rounded-xl bg-[#161b22] border border-white/10 shadow-2xl z-[100]">
                     <p className="text-xs text-gray-400 mb-2 px-2">Change metric:</p>
                     <div className="space-y-1 max-h-48 overflow-y-auto">
                       {availableMetrics.map((metric) => (

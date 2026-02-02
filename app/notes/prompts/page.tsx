@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Prompt {
@@ -13,34 +13,59 @@ interface Prompt {
 }
 
 export default function NotePromptsPage() {
-  const [prompts, setPrompts] = useState<Prompt[]>([
-    { id: '1', name: 'SOAP Structure', description: 'Standard SOAP note generation prompt', content: 'Generate a SOAP note...', category: 'Medical', created_at: new Date().toISOString() },
-    { id: '2', name: 'Therapy Session', description: 'Mental health session notes', content: 'Generate therapy notes...', category: 'Mental Health', created_at: new Date().toISOString() },
-  ]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPrompts();
+  }, []);
+
+  async function loadPrompts() {
+    try {
+      const res = await fetch('/api/notes/prompts');
+      const data = await res.json();
+      if (data.ok) {
+        setPrompts(data.prompts || []);
+      }
+    } catch (e) {
+      console.error('Error loading prompts:', e);
+    } finally {
+      setLoading(false);
+    }
+  }
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPrompt, setNewPrompt] = useState({ name: '', description: '', content: '', category: 'Medical' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function addPrompt() {
+  async function addPrompt() {
     if (!newPrompt.name || !newPrompt.content) return;
     
-    const prompt: Prompt = {
-      id: Date.now().toString(),
-      name: newPrompt.name,
-      description: newPrompt.description,
-      content: newPrompt.content,
-      category: newPrompt.category,
-      created_at: new Date().toISOString(),
-    };
-    setPrompts(prev => [...prev, prompt]);
-    setNewPrompt({ name: '', description: '', content: '', category: 'Medical' });
-    setShowAddModal(false);
+    try {
+      const res = await fetch('/api/notes/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPrompt)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPrompts(prev => [...prev, data.prompt]);
+        setNewPrompt({ name: '', description: '', content: '', category: 'Medical' });
+        setShowAddModal(false);
+      }
+    } catch (e) {
+      console.error('Error adding prompt:', e);
+    }
   }
 
-  function deletePrompt(id: string) {
-    if (confirm('Are you sure you want to delete this prompt?')) {
+  async function deletePrompt(id: string) {
+    if (!confirm('Are you sure you want to delete this prompt?')) return;
+    
+    try {
+      await fetch(`/api/notes/prompts?id=${id}`, { method: 'DELETE' });
       setPrompts(prev => prev.filter(p => p.id !== id));
+    } catch (e) {
+      console.error('Error deleting prompt:', e);
     }
   }
 

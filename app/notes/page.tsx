@@ -31,11 +31,39 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    loadTemplates();
     loadNotes();
   }, []);
 
+  async function loadTemplates() {
+    try {
+      const res = await fetch('/api/notes/templates');
+      const data = await res.json();
+      if (data.ok && data.templates?.length > 0) {
+        setTemplates(data.templates.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          description: t.description || '',
+          category: t.category || 'Medical'
+        })));
+      }
+    } catch (e) {
+      console.error('Error loading templates:', e);
+    }
+  }
+
   async function loadNotes() {
-    setLoading(false);
+    try {
+      const res = await fetch('/api/notes?limit=20');
+      const data = await res.json();
+      if (data.ok) {
+        setNotes(data.notes || []);
+      }
+    } catch (e) {
+      console.error('Error loading notes:', e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

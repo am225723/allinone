@@ -134,6 +134,10 @@ CUSTOM_SIGNATURE_HTML=<p>Best regards,<br>Your Name</p>
 - `tasks_history` - Task audit log (003_tasks.sql)
 - `app_settings` - App configuration (004_app_settings.sql)
 - `comm_users` - User authentication with PIN codes (005_comm_users.sql)
+- `note_templates` - Clinical note templates (006_clinical_notes.sql)
+- `note_prompts` - AI prompts for note generation (006_clinical_notes.sql)
+- `clinical_notes` - Patient clinical notes (006_clinical_notes.sql)
+- `note_attachments` - Uploaded documents for notes (006_clinical_notes.sql)
 
 ## Vercel Cron Jobs
 
@@ -175,6 +179,11 @@ Push notification endpoints require authentication:
 - Edge functions work locally in development mode
 
 ## Recent Changes
+- 2026-02-02: Added Clinical Notes module (/notes, /notes/create, /notes/prompts)
+- 2026-02-02: Added colorful navigation with per-item accent colors (blue/emerald/orange/red/violet/cyan)
+- 2026-02-02: Added glow effects to all dashboard cards (Quo, Gmail, Feed, Performance, Tasks, Upcoming)
+- 2026-02-02: Added 13 stat card metrics including Appointments Today, Tasks Today, Today's Emails/Messages/Calls
+- 2026-02-02: Fixed dropdown z-index visibility for card editing
 - 2026-02-02: Major navigation redesign - Desktop sidebar + Mobile bottom nav
 - 2026-02-02: Renamed OpenPhone to Quo throughout the app
 - 2026-02-02: New dashboard layout with 2x2 stat cards, task section, Quo/Gmail cards, and unified feed
