@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
 import Sidebar from '@/components/Sidebar';
@@ -13,7 +13,6 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +40,7 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="app-shell">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar (icons only) */}
       <Sidebar />
 
       {/* Mobile Top Header */}
@@ -161,8 +160,8 @@ export default function AppShell({ children }: AppShellProps) {
         }
       `}</style>
 
-      {/* Main Content */}
-      <main className="pt-14 pb-20 lg:pt-0 lg:pb-0 lg:pl-64">
+      {/* Main Content - with left sidebar offset on desktop */}
+      <main className="pt-14 pb-20 lg:pt-0 lg:pb-0 lg:pl-16">
         {children}
       </main>
 
