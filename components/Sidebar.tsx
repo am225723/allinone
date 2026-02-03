@@ -10,7 +10,7 @@ const navItems = [
   { href: '/openphone', icon: 'sms', label: 'Quo', color: 'orange' },
   { href: '/gmail', icon: 'mail', label: 'Mail', color: 'red' },
   { href: '/tasks', icon: 'task_alt', label: 'Tasks', color: 'violet' },
-  { href: '/notes', icon: 'description', label: 'Notes', color: 'cyan' },
+  { href: '/noteai', icon: 'edit_note', label: 'Note AI', color: 'cyan' },
 ];
 
 const bottomItems = [
