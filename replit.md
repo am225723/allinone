@@ -280,6 +280,17 @@ Set in Supabase Dashboard > Project Settings > Edge Functions:
 - Supabase Edge Functions auto-fallback to Next.js API routes if not deployed
 
 ## Recent Changes
+- 2026-02-03: Built /noteai page - Clinical Note Generator with 3-column layout
+- 2026-02-03: Added template picker (New Client Summary, Treatment Plan, DARP Note, etc.)
+- 2026-02-03: Added prompt profile management with create/edit/delete
+- 2026-02-03: Added file upload with transcription status tracking
+- 2026-02-03: Added generation settings (tone, detail, section toggles)
+- 2026-02-03: Added letterhead header with patient info on generated notes
+- 2026-02-03: Added version history, save draft/final, export to Google Drive
+- 2026-02-03: Added month calendar view to /patients page with event dots
+- 2026-02-03: Changed Import iCal to Settings modal with import, color coding, display options
+- 2026-02-03: Added date display next to Daily Agenda header
+- 2026-02-03: Added "Generate Clinical Note" button linking to /noteai
 - 2026-02-03: Redesigned /patients page with Clinical Dashboard layout matching Stitch reference
 - 2026-02-03: Added 4 stat cards with neon glow effects (Appointments, Pending Notes, Weekly, Revenue)
 - 2026-02-03: Built Daily Agenda timeline with colored appointment blocks (blue=telehealth, red=intake)
