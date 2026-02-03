@@ -52,12 +52,10 @@ function clamp(min: number, n: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-// Minimal iCalendar (.ics) parser for VEVENT DTSTART/DTEND/SUMMARY/DESCRIPTION/LOCATION.
-// Good enough for a first pass; we can harden it later (RRULE, recurrences, EXDATE, etc.).
 function parseICS(icsText: string, timezoneOffsetMinutes = 0): CalendarEvent[] {
   const unfolded = icsText
     .replace(/\r\n/g, '\n')
-    .replace(/\n[ \t]/g, ''); // unfold lines
+    .replace(/\n[ \t]/g, '');
 
   const lines = unfolded.split('\n');
   const events: CalendarEvent[] = [];
@@ -65,7 +63,6 @@ function parseICS(icsText: string, timezoneOffsetMinutes = 0): CalendarEvent[] {
   let cur: any = {};
 
   function parseICalDate(raw: string): Date | null {
-    // Examples: 20260131T140000Z, 20260131T140000, 20260131
     const v = raw.trim();
     if (!v) return null;
     if (/^\d{8}$/.test(v)) {
@@ -87,7 +84,6 @@ function parseICS(icsText: string, timezoneOffsetMinutes = 0): CalendarEvent[] {
     const isUTC = !!m[7];
     const dt = isUTC ? new Date(Date.UTC(y, mo, da, hh, mm, ss)) : new Date(y, mo, da, hh, mm, ss);
 
-    // Apply user-selected offset (helps correct timezone issues after import)
     if (timezoneOffsetMinutes) {
       dt.setMinutes(dt.getMinutes() + timezoneOffsetMinutes);
     }
@@ -157,10 +153,10 @@ function hoursBetween(a: Date, b: Date) {
 
 function generateTimeSlots() {
   const slots: { label: string; hour: number }[] = [];
-  for (let h = 6; h <= 20; h += 1) {
-    const dt = new Date();
-    dt.setHours(h, 0, 0, 0);
-    slots.push({ label: dt.toLocaleTimeString([], { hour: 'numeric' }), hour: h });
+  for (let h = 8; h <= 18; h += 1) {
+    const suffix = h < 12 ? 'AM' : 'PM';
+    const hour12 = h === 12 ? 12 : h > 12 ? h - 12 : h;
+    slots.push({ label: `${hour12} ${suffix}`, hour: h });
   }
   return slots;
 }
@@ -173,14 +169,9 @@ export default function PatientsPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [tzOffsetMins, setTzOffsetMins] = useState(0);
+  const [showImportPanel, setShowImportPanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [driveConfigured, setDriveConfigured] = useState<boolean | null>(null);
-    const [driveUploading, setDriveUploading] = useState(false);
-    const [driveResult, setDriveResult] = useState<{ id?: string; name?: string; webViewLink?: string } | null>(null);
-    const [driveError, setDriveError] = useState<string | null>(null);
-    const driveFileRef = useRef<HTMLInputElement | null>(null);
-  
   const slots = useMemo(() => generateTimeSlots(), []);
 
   const eventsForDay = useMemo(() => {
@@ -195,51 +186,43 @@ export default function PatientsPage() {
     return events.find(e => e.id === selectedEventId) || null;
   }, [events, selectedEventId]);
 
-  
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/google-drive/status');
-        const data = await res.json();
-        setDriveConfigured(!!data?.configured);
-      } catch {
-        setDriveConfigured(false);
-      }
-    })();
-  }, []);
+  const thisWeekEvents = useMemo(() => {
+    const today = startOfDay(new Date());
+    const weekStart = addDays(today, -today.getDay());
+    const weekEnd = addDays(weekStart, 7);
+    return events.filter(e => e.start >= weekStart && e.start < weekEnd).length;
+  }, [events]);
 
-useEffect(() => {
-    // Seed with a couple demo appointments so the UI isn't empty.
-    // Once you import an iCal, these are replaced.
+  useEffect(() => {
     const now = new Date();
     const d = startOfDay(now);
     const demo: CalendarEvent[] = [
       {
         id: 'demo-1',
         start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0, 0),
-        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 45, 0),
+        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 10, 0, 0),
         summary: 'Follow-up: Anxiety',
         description: 'Reason: medication follow-up',
         location: 'Telehealth',
         color: '#3b82f6',
         client: {
-          name: 'Jamie Rivera',
-          dob: '1993-07-18',
+          name: 'Jennie Rivers',
+          dob: '1989-07-16',
           gender: 'Female',
-          email: 'jamie@example.com',
-          phone: '(555) 555-0134',
+          email: 'jennie.rivers@example.com',
+          phone: '(555) 055-0158',
           address: '123 Main St, New York, NY',
         },
         appointment: { type: 'Follow-up', notes: '' },
       },
       {
         id: 'demo-2',
-        start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 13, 30, 0),
-        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 14, 15, 0),
-        summary: 'Intake: ADHD evaluation',
+        start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 11, 30, 0),
+        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 45, 0),
+        summary: 'Intake: ADHD Evaluation',
         description: 'Initial intake and assessment',
         location: 'Office',
-        color: '#f59e0b',
+        color: '#ef4444',
         client: {
           name: 'Morgan Patel',
           dob: '1988-02-02',
@@ -264,7 +247,6 @@ useEffect(() => {
     }
     setImporting(true);
     try {
-      // Fetch via our API to avoid CORS pain.
       const res = await fetch(`/api/calendar/import?url=${encodeURIComponent(calendarUrl.trim())}&offset=${tzOffsetMins}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Import failed');
@@ -299,64 +281,7 @@ useEffect(() => {
     }
   }
 
-  
-  async function uploadToDrive(file: File, filename?: string) {
-    setDriveError(null);
-    setDriveResult(null);
-
-    if (!driveConfigured) {
-      setDriveError('Google Drive upload is not configured on the server.');
-      return;
-    }
-
-    const form = new FormData();
-    form.append('file', file);
-    if (filename) form.append('filename', filename);
-
-    setDriveUploading(true);
-    try {
-      const res = await fetch('/api/google-drive/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Upload failed');
-      setDriveResult({ id: data?.id, name: data?.name, webViewLink: data?.webViewLink });
-    } catch (e: any) {
-      setDriveError(e?.message || 'Upload failed');
-    } finally {
-      setDriveUploading(false);
-    }
-  }
-
-  async function uploadSelectedAppointmentNotes() {
-    if (!selectedEvent) return;
-    const content = [
-      `Appointment: ${selectedEvent.summary}`,
-      `When: ${selectedEvent.start.toLocaleString()} - ${selectedEvent.end.toLocaleString()}`,
-      selectedEvent.location ? `Location: ${selectedEvent.location}` : '',
-      '',
-      'Client',
-      `Name: ${selectedEvent.client?.name || ''}`,
-      `DOB: ${selectedEvent.client?.dob || ''}`,
-      `Gender: ${selectedEvent.client?.gender || ''}`,
-      `Email: ${selectedEvent.client?.email || ''}`,
-      `Phone: ${selectedEvent.client?.phone || ''}`,
-      `Address: ${selectedEvent.client?.address || ''}`,
-      '',
-      'Notes',
-      selectedEvent.appointment?.notes || '',
-      '',
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    const safeName = (selectedEvent.client?.name || 'patient')
-      .replace(/[^a-z0-9\-\s]/gi, '')
-      .trim()
-      .replace(/\s+/g, '_');
-    const file = new File([content], `${safeName || 'patient'}_${toISODate(selectedEvent.start)}.txt`, { type: 'text/plain' });
-    await uploadToDrive(file);
-  }
-
-function updateSelectedEvent(patch: Partial<CalendarEvent>) {
+  function updateSelectedEvent(patch: Partial<CalendarEvent>) {
     if (!selectedEvent) return;
     setEvents(prev => prev.map(ev => (ev.id === selectedEvent.id ? { ...ev, ...patch } : ev)));
   }
@@ -371,455 +296,375 @@ function updateSelectedEvent(patch: Partial<CalendarEvent>) {
     setEvents(prev => prev.map(ev => (ev.id === selectedEvent.id ? { ...ev, appointment: { ...(ev.appointment || {}), ...patch } } : ev)));
   }
 
-  // Month grid
-  const monthAnchor = useMemo(() => new Date(selectedDay.getFullYear(), selectedDay.getMonth(), 1), [selectedDay]);
-  const monthLabel = monthAnchor.toLocaleDateString([], { month: 'long', year: 'numeric' });
-  const startWeekday = monthAnchor.getDay(); // 0 Sun
-  const daysInMonth = new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 0).getDate();
-  const cells: (Date | null)[] = [];
-  for (let i = 0; i < startWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(selectedDay.getFullYear(), selectedDay.getMonth(), d));
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const eventsByISO = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const ev of events) {
-      const k = toISODate(ev.start);
-      map[k] = (map[k] || 0) + 1;
-    }
-    return map;
-  }, [events]);
-
   return (
     <div className="container py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Patients</h1>
-        <p className="text-gray-400 mt-1">Clinical calendar + appointment details, with iCal import and timezone correction.</p>
-      </div>
-
-      {/* Import Controls */}
-      <div className="card mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-          <div className="flex-1">
-            <label className="text-sm text-gray-400">Import iCal via URL</label>
-            <div className="flex gap-2 mt-2">
-              <input
-                value={calendarUrl}
-                onChange={(e) => setCalendarUrl(e.target.value)}
-                placeholder="https://.../calendar.ics"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-              />
-              <button onClick={importFromUrl} disabled={importing} className="btn btn-primary">
-                <span className={`material-symbols-outlined ${importing ? 'animate-spin' : ''}`}>download</span>
-                Import
-              </button>
-            </div>
-          </div>
-
-          <div className="w-full lg:w-[320px]">
-            <label className="text-sm text-gray-400">Timezone correction (minutes)</label>
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="range"
-                min={-720}
-                max={720}
-                step={15}
-                value={tzOffsetMins}
-                onChange={(e) => setTzOffsetMins(Number(e.target.value))}
-                className="w-full"
-              />
-              <div className="min-w-[80px] text-sm text-gray-200 text-right">{tzOffsetMins >= 0 ? '+' : ''}{tzOffsetMins}m</div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">If everything looks shifted, nudge this slider then re-import.</p>
-          </div>
-
-          <div className="w-full lg:w-[260px]">
-            <label className="text-sm text-gray-400">Or upload .ics file</label>
-            <div className="flex gap-2 mt-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".ics,text/calendar"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) importFromFile(f);
-                }}
-              />
-              <button
-                className="btn btn-secondary w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={importing}
-              >
-                <span className="material-symbols-outlined">upload</span>
-                Choose file
-              </button>
-            </div>
-          </div>
+      {/* Header */}
+      <header className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Combined Clinical Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-1">Clinical calendar • appointment details, with EHR import and timeline correction.</p>
         </div>
-        {importError && (
-          <div className="mt-4 text-sm text-red-400 flex items-center gap-2">
-            <span className="material-symbols-outlined">error</span>
-            {importError}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowImportPanel(!showImportPanel)}
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2 transition"
+          >
+            <span className="material-symbols-outlined text-lg">upload</span>
+            Import iCal
+          </button>
+        </div>
+      </header>
+
+      {/* Import Panel */}
+      {showImportPanel && (
+        <div className="card mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+            <div className="flex-1">
+              <label className="text-sm text-gray-400">Import iCal via URL</label>
+              <div className="flex gap-2 mt-2">
+                <input
+                  value={calendarUrl}
+                  onChange={(e) => setCalendarUrl(e.target.value)}
+                  placeholder="https://.../calendar.ics"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                />
+                <button onClick={importFromUrl} disabled={importing} className="btn btn-primary">
+                  <span className={`material-symbols-outlined ${importing ? 'animate-spin' : ''}`}>download</span>
+                  Import
+                </button>
+              </div>
+            </div>
+            <div className="w-full lg:w-[280px]">
+              <label className="text-sm text-gray-400">Timezone correction (minutes)</label>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="range"
+                  min={-720}
+                  max={720}
+                  step={15}
+                  value={tzOffsetMins}
+                  onChange={(e) => setTzOffsetMins(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="min-w-[60px] text-sm text-gray-200 text-right">{tzOffsetMins >= 0 ? '+' : ''}{tzOffsetMins}m</div>
+              </div>
+            </div>
+            <div className="w-full lg:w-[200px]">
+              <label className="text-sm text-gray-400">Or upload .ics file</label>
+              <div className="flex gap-2 mt-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".ics,text/calendar"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) importFromFile(f);
+                  }}
+                />
+                <button
+                  className="btn btn-secondary w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                >
+                  Choose file
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+          {importError && (
+            <div className="mt-4 text-sm text-red-400 flex items-center gap-2">
+              <span className="material-symbols-outlined">error</span>
+              {importError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Today's Appointments - Blue glow */}
+        <div 
+          className="rounded-xl p-5 relative overflow-hidden bg-[#181b21]"
+          style={{
+            boxShadow: '0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 8px rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.5)'
+          }}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-gray-400 text-sm font-medium">Today's Appointments</span>
+            <div className="p-1.5 bg-blue-500/10 rounded text-blue-400">
+              <span className="material-symbols-outlined text-lg">event</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-white">{eventsForDay.length}</div>
+        </div>
+
+        {/* Pending Notes - Red glow */}
+        <div 
+          className="rounded-xl p-5 relative overflow-hidden bg-[#181b21]"
+          style={{
+            boxShadow: '0 0 15px rgba(239, 68, 68, 0.3), inset 0 0 8px rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.5)'
+          }}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-gray-400 text-sm font-medium">Pending Notes</span>
+            <div className="p-1.5 bg-red-500/10 rounded text-red-400">
+              <span className="material-symbols-outlined text-lg">description</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-white">6</div>
+        </div>
+
+        {/* This Week's Appointments - Blue glow */}
+        <div 
+          className="rounded-xl p-5 relative overflow-hidden bg-[#181b21]"
+          style={{
+            boxShadow: '0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 8px rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.5)'
+          }}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-gray-400 text-sm font-medium">This Week's Appointments</span>
+            <div className="p-1.5 bg-blue-500/10 rounded text-blue-400">
+              <span className="material-symbols-outlined text-lg">check_circle</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-white">{thisWeekEvents}</div>
+        </div>
+
+        {/* Today's Revenue - Green glow */}
+        <div 
+          className="rounded-xl p-5 relative overflow-hidden bg-[#181b21]"
+          style={{
+            boxShadow: '0 0 15px rgba(16, 185, 129, 0.3), inset 0 0 8px rgba(16, 185, 129, 0.1)',
+            border: '1px solid rgba(16, 185, 129, 0.5)'
+          }}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-gray-400 text-sm font-medium">Today's Revenue</span>
+            <div className="p-1.5 bg-green-500/10 rounded text-green-400">
+              <span className="material-symbols-outlined text-lg">attach_money</span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-white">$196.70</div>
+        </div>
       </div>
 
-      {/* Main: Agenda + Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-        {/* Left: Daily time agenda */}
-        <div className="card lg:col-span-7">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">Daily Agenda</h2>
-              <p className="text-sm text-gray-400">{selectedDay.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDay(addDays(selectedDay, -1))}>
-                <span className="material-symbols-outlined">chevron_left</span>
-                Prev
+      {/* Main Grid: Agenda + Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Daily Agenda */}
+        <div className="lg:col-span-7 card min-h-[700px] flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-white">Daily Agenda</h2>
+            <div className="flex items-center gap-1 text-sm bg-white/5 rounded-lg p-1">
+              <button
+                onClick={() => setSelectedDay(addDays(selectedDay, -1))}
+                className="px-3 py-1.5 rounded text-gray-400 hover:text-white hover:bg-white/5 flex items-center gap-1 transition"
+              >
+                <span className="material-symbols-outlined text-sm">chevron_left</span> Prev
               </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDay(startOfDay(new Date()))}>
-                <span className="material-symbols-outlined">today</span>
+              <button
+                onClick={() => setSelectedDay(startOfDay(new Date()))}
+                className="px-3 py-1.5 bg-white/10 rounded text-white font-medium"
+              >
                 Today
               </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDay(addDays(selectedDay, 1))}>
-                Next
-                <span className="material-symbols-outlined">chevron_right</span>
+              <button
+                onClick={() => setSelectedDay(addDays(selectedDay, 1))}
+                className="px-3 py-1.5 rounded text-gray-400 hover:text-white hover:bg-white/5 flex items-center gap-1 transition"
+              >
+                Next <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/3" style={{ height: 620 }}>
-            {/* Time grid */}
-            <div className="absolute inset-0">
+          <div className="flex-1 overflow-y-auto relative pr-2">
+            <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
+              {/* Time slots */}
               {slots.map((s, idx) => (
                 <div
                   key={s.hour}
-                  className="absolute left-0 right-0 border-t border-white/5"
-                  style={{ top: `${(idx / (slots.length - 1)) * 100}%` }}
+                  className="border-t border-white/5 h-16 relative"
                 >
-                  <div className="absolute -left-1 top-[-10px] w-16 text-xs text-gray-500">
+                  <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
                     {s.label}
-                  </div>
+                  </span>
                 </div>
               ))}
-            </div>
 
-            {/* Events */}
-            <div className="absolute inset-0 pl-16 pr-3 py-4">
-              {eventsForDay.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  No appointments for this day.
-                </div>
-              ) : (
-                eventsForDay.map((ev) => {
-                  const dayStart = new Date(selectedDay);
-                  dayStart.setHours(6, 0, 0, 0);
-                  const dayEnd = new Date(selectedDay);
-                  dayEnd.setHours(20, 0, 0, 0);
+              {/* Event blocks */}
+              {eventsForDay.map((ev) => {
+                const dayStart = new Date(selectedDay);
+                dayStart.setHours(8, 0, 0, 0);
 
-                  const startH = clamp(0, hoursBetween(dayStart, ev.start), 14);
-                  const endH = clamp(0, hoursBetween(dayStart, ev.end), 14);
-                  const top = (startH / 14) * 100;
-                  const height = Math.max(3.5, ((endH - startH) / 14) * 100);
+                const startH = clamp(0, hoursBetween(dayStart, ev.start), 10);
+                const endH = clamp(0, hoursBetween(dayStart, ev.end), 10);
+                const top = startH * 64;
+                const height = Math.max(50, (endH - startH) * 64);
 
-                  return (
-                    <button
-                      key={ev.id}
-                      onClick={() => setSelectedEventId(ev.id)}
-                      className={`absolute left-0 right-0 text-left rounded-xl border transition shadow-sm hover:shadow-md focus:outline-none ${selectedEventId === ev.id ? 'ring-2 ring-primary' : ''}`}
-                      style={{
-                        top: `${top}%`,
-                        height: `${height}%`,
-                        background: `${(ev.color || '#3b82f6')}22`,
-                        borderColor: `${(ev.color || '#3b82f6')}55`,
-                      }}
-                    >
-                      <div className="p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-semibold truncate">{ev.summary}</div>
-                            <div className="text-xs text-gray-300 mt-1">
-                              {timeLabel(ev.start)} • {timeLabel(ev.end)}
-                              {ev.location ? ` • ${ev.location}` : ''}
-                            </div>
-                          </div>
-                          <span className="material-symbols-outlined" style={{ color: ev.color || '#3b82f6', opacity: 0.9 }}>
-                            event
-                          </span>
-                        </div>
+                const isBlue = ev.color === '#3b82f6';
+                const bgColor = isBlue ? 'bg-blue-500' : 'bg-red-500';
+                const borderColor = isBlue ? 'border-blue-400' : 'border-red-400';
+                const textSecondary = isBlue ? 'text-blue-100' : 'text-red-100';
+
+                return (
+                  <button
+                    key={ev.id}
+                    onClick={() => setSelectedEventId(ev.id)}
+                    className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${bgColor} ${borderColor} ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                    style={{ top: `${top}px`, height: `${height}px` }}
+                  >
+                    <div className="flex justify-between items-start text-white">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
+                        <p className={`text-xs mt-0.5 ${textSecondary}`}>
+                          {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                        </p>
                       </div>
-                    </button>
-                  );
-                })
-              )}
+                      <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
+                        {ev.location?.toLowerCase().includes('tele') ? 'videocam' : 'assignment_ind'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Right: Appointment + Client panel */}
-        <div className="card lg:col-span-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Appointment Details</h2>
+        {/* Appointment Details */}
+        <div className="lg:col-span-5 card min-h-[700px] flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-white">Appointment Details</h2>
             {selectedEvent && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={selectedEvent.color || '#3b82f6'}
-                  onChange={(e) => updateSelectedEvent({ color: e.target.value })}
-                  title="Event color"
-                  className="h-9 w-10 rounded-lg border border-white/10 bg-transparent"
-                />
+              <div className="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition">
+                <span className="material-symbols-outlined text-sm">edit</span>
               </div>
             )}
           </div>
 
           {!selectedEvent ? (
-            <div className="text-gray-500">Select an appointment to view details.</div>
+            <div className="flex-1 flex items-center justify-center text-gray-500">
+              Select an appointment to view details.
+            </div>
           ) : (
-            <div className="space-y-5">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              {/* Patient Name */}
               <div>
-                <label className="text-sm text-gray-400">Appointment</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Patient Name</label>
                 <input
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                  value={selectedEvent.summary}
-                  onChange={(e) => updateSelectedEvent({ summary: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={selectedEvent.client?.name || ''}
+                  onChange={(e) => updateSelectedClient({ name: e.target.value })}
                 />
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div className="rounded-xl border border-white/10 bg-white/3 p-3">
-                    <div className="text-xs text-gray-400">Start</div>
-                    <div className="text-sm mt-1">{selectedEvent.start.toLocaleString()}</div>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/3 p-3">
-                    <div className="text-xs text-gray-400">End</div>
-                    <div className="text-sm mt-1">{selectedEvent.end.toLocaleString()}</div>
+              </div>
+
+              {/* Start/End */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Start</label>
+                  <div className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200">
+                    {selectedEvent.start.toLocaleDateString()}, {timeLabel(selectedEvent.start)}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div>
-                    <label className="text-xs text-gray-400">Appointment Type</label>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                      value={selectedEvent.appointment?.type || ''}
-                      onChange={(e) => updateSelectedAppt({ type: e.target.value })}
-                      placeholder="Follow-up / Intake / ..."
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Location</label>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                      value={selectedEvent.location || ''}
-                      onChange={(e) => updateSelectedEvent({ location: e.target.value })}
-                      placeholder="Telehealth / Office / ..."
-                    />
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">End</label>
+                  <div className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200">
+                    {selectedEvent.end.toLocaleDateString()}, {timeLabel(selectedEvent.end)}
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm text-gray-400">Client</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              {/* Type/Location */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Appointment Type</label>
                   <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                    value={selectedEvent.client?.name || ''}
-                    onChange={(e) => updateSelectedClient({ name: e.target.value })}
-                    placeholder="Name"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={selectedEvent.appointment?.type || ''}
+                    onChange={(e) => updateSelectedAppt({ type: e.target.value })}
+                    placeholder="Follow-up"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Location</label>
                   <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                    value={selectedEvent.client?.dob || ''}
-                    onChange={(e) => updateSelectedClient({ dob: e.target.value })}
-                    placeholder="DOB (YYYY-MM-DD)"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={selectedEvent.location || ''}
+                    onChange={(e) => updateSelectedEvent({ location: e.target.value })}
+                    placeholder="Telehealth"
                   />
+                </div>
+              </div>
+
+              {/* Client Section */}
+              <div className="pt-2">
+                <label className="block text-xs font-medium text-gray-400 mb-3">CLIENT</label>
+                <div className="grid grid-cols-2 gap-3">
                   <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={selectedEvent.client?.gender || ''}
                     onChange={(e) => updateSelectedClient({ gender: e.target.value })}
                     placeholder="Gender"
                   />
                   <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                    value={selectedEvent.client?.phone || ''}
-                    onChange={(e) => updateSelectedClient({ phone: e.target.value })}
-                    placeholder="Phone"
-                  />
-                  <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm md:col-span-2"
-                    value={selectedEvent.client?.email || ''}
-                    onChange={(e) => updateSelectedClient({ email: e.target.value })}
-                    placeholder="Email"
-                  />
-                  <input
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm md:col-span-2"
-                    value={selectedEvent.client?.address || ''}
-                    onChange={(e) => updateSelectedClient({ address: e.target.value })}
-                    placeholder="Address"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={selectedEvent.client?.dob || ''}
+                    onChange={(e) => updateSelectedClient({ dob: e.target.value })}
+                    placeholder="DOB (YYYY-MM-DD)"
                   />
                 </div>
               </div>
 
+              {/* Phone */}
+              <div className="relative">
+                <input
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={selectedEvent.client?.phone || ''}
+                  onChange={(e) => updateSelectedClient({ phone: e.target.value })}
+                  placeholder="Phone"
+                />
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">call</span>
+              </div>
+
+              {/* Email */}
+              <div className="relative">
+                <input
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={selectedEvent.client?.email || ''}
+                  onChange={(e) => updateSelectedClient({ email: e.target.value })}
+                  placeholder="Email"
+                />
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">mail</span>
+              </div>
+
+              {/* Address */}
+              <input
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                value={selectedEvent.client?.address || ''}
+                onChange={(e) => updateSelectedClient({ address: e.target.value })}
+                placeholder="Address"
+              />
+
+              {/* Notes */}
               <div>
-                <label className="text-sm text-gray-400">Notes</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Appointment notes...</label>
                 <textarea
-                  className="mt-2 w-full min-h-[120px] rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-h-[100px] resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={selectedEvent.appointment?.notes || ''}
                   onChange={(e) => updateSelectedAppt({ notes: e.target.value })}
-                  placeholder="Appointment notes..."
+                  placeholder="Type notes here..."
                 />
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/3 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold">Clinical Note Creator</div>
-                    <div className="text-sm text-gray-400 mt-1">
-                      Upload files or send appointment notes straight to Google Drive.
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-3xl text-primary">auto_awesome</span>
-                </div>
-
-                {driveConfigured === false && (
-                  <div className="mt-4 text-sm text-amber-300">
-                    Google Drive upload isn’t configured. Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY.
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4">
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => driveFileRef.current?.click()}
-                    disabled={driveUploading || driveConfigured === false}
-                  >
-                    <span className="material-symbols-outlined">upload_file</span>
-                    Upload file to Drive
-                  </button>
-
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={uploadSelectedAppointmentNotes}
-                    disabled={driveUploading || !selectedEvent || driveConfigured === false}
-                  >
-                    <span className="material-symbols-outlined">description</span>
-                    Upload appt notes
-                  </button>
-
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      const notes = selectedEvent?.appointment?.notes || '';
-                      const blob = new Blob([notes], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'notes.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    disabled={!selectedEvent}
-                  >
-                    <span className="material-symbols-outlined">download</span>
-                    Download notes
-                  </button>
-
-                  <input
-                    ref={driveFileRef}
-                    type="file"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      await uploadToDrive(f);
-                      e.currentTarget.value = '';
-                    }}
-                  />
-                </div>
-
-                {(driveUploading || driveError || driveResult) && (
-                  <div className="mt-4 text-sm">
-                    {driveUploading && <div className="text-gray-300">Uploading…</div>}
-                    {driveError && <div className="text-red-300">{driveError}</div>}
-                    {driveResult?.webViewLink && (
-                      <div className="text-emerald-300">
-                        Uploaded: <a className="underline" href={driveResult.webViewLink} target="_blank" rel="noreferrer">{driveResult.name || 'View in Drive'}</a>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* Save Button */}
+              <button className="w-full py-3 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition shadow-lg">
+                Save Changes
+              </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Bottom: Month view */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Calendar</h2>
-          <div className="flex items-center gap-2">
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setSelectedDay(startOfDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1)))}
-            >
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            <div className="text-sm text-gray-300 min-w-[180px] text-center">{monthLabel}</div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setSelectedDay(startOfDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1)))}
-            >
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-2 text-xs text-gray-500 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="px-2">{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-2">
-          {cells.map((cell, idx) => {
-            if (!cell) {
-              return <div key={`empty-${idx}`} className="h-20 rounded-xl border border-white/5 bg-white/2" />;
-            }
-            const iso = toISODate(cell);
-            const count = eventsByISO[iso] || 0;
-            const isSelected = sameDay(cell, selectedDay);
-            const isToday = sameDay(cell, new Date());
-
-            return (
-              <button
-                key={iso}
-                onClick={() => setSelectedDay(startOfDay(cell))}
-                className={`h-20 rounded-xl border text-left p-2 transition hover:bg-white/5 ${
-                  isSelected ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/3'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`text-sm font-semibold ${isToday ? 'text-primary' : 'text-gray-200'}`}>{cell.getDate()}</div>
-                  {count > 0 && (
-                    <div className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
-                      {count} appt
-                    </div>
-                  )}
-                </div>
-                {count > 0 && (
-                  <div className="mt-2 text-[11px] text-gray-400">
-                    {events
-                      .filter(ev => sameDay(ev.start, cell))
-                      .slice(0, 2)
-                      .map(ev => (
-                        <div key={ev.id} className="truncate">• {ev.summary}</div>
-                      ))}
-                  </div>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
     </div>
