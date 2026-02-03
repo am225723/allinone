@@ -1,0 +1,334 @@
+Prompt: Clinical Note Generator Page
+
+Build a Clinical Note Generator page for a clinical scheduling + documentation app. This page is opened when the user clicks “Generate Appointment Note” from an appointment on the Calendar screen.
+
+The UI must match a modern dark theme with glass cards (rounded corners, soft borders, subtle glow gradients, premium dashboard look).
+
+⸻
+
+0) Primary goals
+	1.	Let a clinician generate a clinical note from mixed inputs (audio/video/PDF/document uploads + Google Drive files + typed text).
+	2.	Allow prompt customization via an in-page Settings button that manages the prompts used for generation.
+	3.	Output a clinician-editable draft with version history, and export as PDF to Google Drive using the patient-folder rule.
+
+⸻
+
+1) Route, Context, and Page Header
+
+Route
+	•	/notes/generate?appointmentId=<id>
+
+Context loading
+
+On load:
+	•	Fetch appointment + client context using appointmentId.
+	•	Show a compact context strip containing:
+	•	Patient name
+	•	Appointment date/time
+	•	Appointment type
+	•	Any appointment notes (if present)
+	•	Buttons: Back to Calendar, Prompt Settings (gear)
+
+If appointmentId is missing/invalid:
+	•	Show an error state with:
+	•	“Select an appointment”
+	•	search/select from upcoming appointments.
+
+⸻
+
+2) Custom Letterhead Header (Required)
+
+The generated note must begin with a custom header section that matches the provided letterhead format.
+
+Header content and placeholders
+
+Render the following block at the top of the note, using the note template name and patient/appointment data:
+	•	[TYPE OF GENERATE NOTE NAME]
+	•	Patient Name: [Client Name]    MRN: [MRN]
+	•	Date of Birth: [Date of Birth]    Date of Service: [MM/DD/YYYY]
+	•	Provider: Douglas Zelisko, M.D.
+	•	45 S Main St, Suite 111 West Hartford, CT 06107    F: 860.318.2085    P: 860.615.3629    support@drzelisko.com  ￼
+
+Header behavior rules
+	•	If MRN is not available, show MRN: [NOT REPORTED].
+	•	Date of Service uses appointment date.
+	•	The “TYPE OF GENERATE NOTE NAME” must match the selected note template label.
+	•	The header must appear in both:
+	•	the on-screen note preview, and
+	•	the exported PDF.
+
+⸻
+
+3) Page Layout (3-column)
+
+A) Left Column: Controls + Inputs
+
+Sections (top to bottom):
+	1.	Template Picker
+	2.	Prompt Profile Selector
+	3.	Input Sources
+	4.	Generation Settings
+	5.	Generate / Regenerate actions
+	6.	Clarifying Questions (optional, can appear after generation)
+
+B) Center Column: Source Content Viewer
+
+Tabbed viewer:
+	•	Typed Notes
+	•	Uploaded Files
+	•	Transcripts (only if audio/video uploaded and transcribed)
+	•	Drive Files
+	•	Extracted Text (combined)
+
+Speaker separation is not required. A single transcript stream is fine.
+
+C) Right Column: Note Output + Actions
+	•	Editable generated note output (with header at top).
+	•	Per-section tools (shorten/expand, rewrite tone).
+	•	Version history timeline.
+	•	Save/export actions (PDF to Drive).
+
+⸻
+
+4) Template Picker (Note Type)
+
+The user selects a note template such as:
+	•	New Client Summary
+	•	Treatment Plan
+	•	Intake Note
+	•	DARP Note
+	•	(future templates allowed)
+
+Each template defines:
+	•	required headings/sections
+	•	formatting rules
+	•	optional sections toggle availability (risk, goals, etc.)
+
+⸻
+
+5) Input Sources (Required)
+
+Allow any combination of:
+
+Typed text
+	•	A text area: “Paste key points, session summary, or intake text…”
+
+Uploads
+	•	Audio (mp3, wav, m4a)
+	•	Video (mp4, mov)
+	•	PDF
+	•	Documents (docx, txt, rtf)
+
+Google Drive files
+	•	Drive picker to attach one or more files as context.
+	•	Show selected Drive files with:
+	•	file name
+	•	source
+	•	include/exclude toggle.
+
+No live transcription requirement
+	•	Do not implement live transcription.
+	•	If audio/video is uploaded, run transcription as a background processing step with progress state:
+	•	Queued → Processing → Ready → Failed.
+
+⸻
+
+6) Prompt Settings (Required) and Prompt Profiles
+
+Add a Settings button (gear icon) on this page. Clicking it opens Prompt Settings (modal or route).
+
+Prompt Settings must allow the user to:
+	1.	View prompts used by the generator
+	2.	Edit prompts
+	3.	Add new prompts (Prompt Profiles)
+	4.	Select which Prompt Profile is active for the current note generation
+	5.	Set default prompt profile per template
+	6.	(Optional) Test prompt profile with sample text before saving
+
+Prompt Profile data model
+
+A Prompt Profile contains:
+	•	Profile name (e.g., “DARP Generator v2”)
+	•	System prompt text
+	•	Optional “rules” toggles
+	•	Output formatting preference (Markdown/Plain text)
+	•	Notes (internal description for the clinician)
+
+Seed prompt profiles from uploaded prompts
+
+Create initial prompt profiles based on the uploaded “expanded prompts” document, including:
+	•	“Client Summary + Clinical Report (PDF)” profile with strong safety rules and traceability expectations.  ￼
+	•	“DARP Note Generator + ICD-10/CPT Suggestions” profile with the Data/Assessment/Response/Plan structure and coding suggestions.  ￼
+	•	“Intake / Treatment Plan” style content generation that includes Risk Assessment, Diagnosis, and Treatment Plan components.  ￼
+
+Prompt Settings changes must immediately affect generation behavior when the user clicks Generate/Regenerate.
+
+⸻
+
+7) Generation Settings (Left Column)
+
+Provide controls:
+	•	Tone:
+	•	“More clinical”
+	•	“More concise”
+	•	“Balanced”
+	•	Detail level:
+	•	Brief / Standard / Detailed
+	•	Include sections toggles:
+	•	Include Risk Assessment
+	•	Include Diagnosis & Codes
+	•	Include Treatment Plan / Goals
+	•	Include transcript toggle (only appears when transcription exists)
+
+⸻
+
+8) AI Generation Behavior (Core Requirements)
+
+When the user clicks Generate Note:
+
+Inputs to the AI
+	•	Appointment context: date/time/type, appointment notes
+	•	Patient demographics: name, DOB (and MRN if available)
+	•	Selected template
+	•	Selected prompt profile
+	•	Extracted content from:
+	•	typed text
+	•	uploaded documents (PDF/doc text extraction)
+	•	transcripts (if audio/video uploaded and transcribed)
+	•	Drive files (text extracted or summarized as allowed)
+
+Output structure requirements
+	1.	Start with the letterhead header section exactly as specified.  ￼
+	2.	Follow the selected template’s headings and formatting rules.
+	3.	Maintain clear clinical language, neutral tone.
+
+Diagnosis rule (per your instruction)
+
+Diagnosis may be inferred if the input supports it, but must remain evidence-linked:
+	•	Provide diagnosis name and (if enabled) ICD-10 suggestions.
+	•	For each inferred diagnosis, include:
+	•	Supporting evidence (symptoms, duration, impairment) and how it maps clinically
+	•	A confidence label:
+	•	“Likely” / “Provisional” / “Rule-out”
+	•	If evidence is weak, label as provisional and list what additional info would help.
+
+Risk and safety section
+
+If Risk Assessment is enabled, produce a structured risk assessment section including suicidality/homicidality/self-harm and risk level rationale.  ￼
+
+Treatment plan logic
+
+If Treatment Plan is enabled, generate plan elements tied to the case:
+	•	modality, frequency, goals, interventions, homework, follow-up.  ￼
+
+DARP format behavior (when template or prompt profile uses DARP)
+
+Use headings and constraints aligned to the DARP structure:
+	•	Data, Assessment, Response, Plan
+	•	Interpretations must trace back to data points.  ￼
+
+⸻
+
+9) Clarifying Questions (Optional UI Output)
+
+After generation, the system may produce a Clarifications Needed panel if key items are missing.
+	•	Questions should be short, clinician-friendly, and directly improve the note.
+	•	User can answer inline; answers update the note on regenerate.
+
+(Example missing items: session length, medication list, safety planning details, diagnostic history.)
+
+⸻
+
+10) Note Output Editor (Right Column)
+
+The generated note must be:
+	•	Editable inline
+	•	Sectioned (collapse/expand)
+	•	Tools per section:
+	•	“Shorten”
+	•	“Expand”
+	•	“Rewrite more clinical”
+	•	“Rewrite more concise”
+
+Version history
+	•	Each Generate/Regenerate creates a new version snapshot:
+	•	timestamp
+	•	template
+	•	prompt profile used
+	•	Allow:
+	•	view diff (optional)
+	•	restore prior version
+
+⸻
+
+11) Save + Export
+
+Save to app database (Required)
+	•	Save draft
+	•	Save final
+	•	Track versions and audit trail.
+
+Export PDF to Google Drive (Required)
+
+Export the note as a PDF and upload to Drive.
+
+Folder location
+	•	Patient folder exists under: /PatientForms/
+	•	Patient folder name is FirstName LastName
+	•	Find folder via smart matching:
+	•	case-insensitive
+	•	ignore extra whitespace
+	•	normalize punctuation
+	•	handle suffix variants (Jr/Jr., Sr, III)
+	•	if multiple matches: prompt user to select correct folder
+
+Filename
+	•	MMDDYYYY_Note.pdf (appointment date as MMDDYYYY)
+
+Collision handling
+	•	If file exists: MMDDYYYY_Note_v2.pdf, then _v3, etc.
+
+Post-export UX
+	•	Toast: “Exported to Drive”
+	•	Show:
+	•	folder path used
+	•	final filename
+	•	link to open (if available)
+
+⸻
+
+12) Audit, Permissions, and Security
+	•	Role-based access control
+	•	Audit log entries for:
+	•	file uploads
+	•	transcription completion
+	•	generation/regeneration events
+	•	manual edits
+	•	saves/finalization
+	•	Drive exports and Drive file attachments
+	•	Secure storage and encryption in transit/at rest
+	•	Permission-aware Drive access and file selection
+
+⸻
+
+13) Error states (Must include)
+	1.	Appointment not found / missing context
+	2.	Upload failed (audio/video/pdf/doc)
+	3.	Transcription failed (provide retry)
+	4.	Drive auth expired (reconnect flow)
+	5.	Patient folder not found (prompt user to pick folder or resolve)
+	6.	PDF export failure (retry and detailed error)
+
+⸻
+
+14) Acceptance Criteria (Concise but explicit)
+	•	User can select a template and prompt profile, upload any mix of inputs, and generate a note.
+	•	Note includes the specified letterhead header.  ￼
+	•	Audio/video transcription occurs after upload (no live transcription).
+	•	No requirement for speaker separation.
+	•	Diagnosis can be inferred when supported, and must include evidence-based rationale.
+	•	User can edit the note, regenerate, and view version history.
+	•	User can export PDF to /PatientForms/FirstName LastName/MMDDYYYY_Note.pdf using smart folder matching, with versioned filenames on collisions.
+	•	Prompt Settings allows adding/editing/selecting prompts and affects generation output immediately.
+
+⸻

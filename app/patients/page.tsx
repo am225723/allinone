@@ -170,9 +170,29 @@ export default function PatientsPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [tzOffsetMins, setTzOffsetMins] = useState(0);
   const [showImportPanel, setShowImportPanel] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const slots = useMemo(() => generateTimeSlots(), []);
+
+  const monthDays = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    const endDate = new Date(lastDay);
+    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+    const days: Date[] = [];
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  }, [currentMonth]);
 
   const eventsForDay = useMemo(() => {
     const day = selectedDay;
@@ -306,11 +326,11 @@ export default function PatientsPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowImportPanel(!showImportPanel)}
+            onClick={() => setShowSettingsModal(true)}
             className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2 transition"
           >
-            <span className="material-symbols-outlined text-lg">upload</span>
-            Import iCal
+            <span className="material-symbols-outlined text-lg">settings</span>
+            Settings
           </button>
         </div>
       </header>
@@ -457,7 +477,10 @@ export default function PatientsPage() {
         {/* Daily Agenda */}
         <div className="lg:col-span-7 card min-h-[700px] flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-white">Daily Agenda</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Daily Agenda</h2>
+              <p className="text-sm text-gray-400">{selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
             <div className="flex items-center gap-1 text-sm bg-white/5 rounded-lg p-1">
               <button
                 onClick={() => setSelectedDay(addDays(selectedDay, -1))}
@@ -668,10 +691,215 @@ export default function PatientsPage() {
               <button className="w-full py-3 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition shadow-lg">
                 Save Changes
               </button>
+
+              {/* Generate Clinical Note Button */}
+              <a
+                href={`/noteai?appointmentId=${selectedEvent.id}`}
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium transition shadow-lg flex items-center justify-center gap-2 mt-3"
+              >
+                <span className="material-symbols-outlined">description</span>
+                Generate Clinical Note
+              </a>
             </div>
           )}
         </div>
       </div>
+
+      {/* Month Calendar View */}
+      <div className="card mt-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Month View</h2>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            <div key={day} className="text-center text-xs text-gray-500 font-medium py-2">{day}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {monthDays.map((day, idx) => {
+            const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+            const isToday = sameDay(day, new Date());
+            const isSelected = sameDay(day, selectedDay);
+            const dayEvents = events.filter((ev) => sameDay(ev.start, day));
+            const hasEvents = dayEvents.length > 0;
+
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDay(day)}
+                className={`relative aspect-square p-1 rounded-lg text-sm transition flex flex-col items-center justify-start
+                  ${!isCurrentMonth ? 'text-gray-600' : 'text-gray-300'}
+                  ${isToday ? 'bg-blue-500/20 text-blue-400 font-bold' : ''}
+                  ${isSelected ? 'ring-2 ring-purple-500 bg-purple-500/10' : 'hover:bg-white/5'}
+                `}
+              >
+                <span className="text-xs">{day.getDate()}</span>
+                {hasEvents && (
+                  <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
+                    {dayEvents.slice(0, 3).map((ev, i) => {
+                      const summaryLower = (ev.summary || '').toLowerCase();
+                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
+                      return (
+                        <div
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full ${isIntake ? 'bg-red-500' : 'bg-blue-500'}`}
+                        />
+                      );
+                    })}
+                    {dayEvents.length > 3 && (
+                      <span className="text-[8px] text-gray-400">+{dayEvents.length - 3}</span>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex justify-between items-center mt-4">
+          <button
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+            className="px-3 py-1.5 rounded text-gray-400 hover:text-white hover:bg-white/5 flex items-center gap-1 transition"
+          >
+            <span className="material-symbols-outlined text-sm">chevron_left</span> Prev Month
+          </button>
+          <span className="text-sm font-medium text-white">
+            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </span>
+          <button
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+            className="px-3 py-1.5 rounded text-gray-400 hover:text-white hover:bg-white/5 flex items-center gap-1 transition"
+          >
+            Next Month <span className="material-symbols-outlined text-sm">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowSettingsModal(false)}>
+          <div className="bg-[#1a1d24] border border-white/10 rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">Calendar Settings</h3>
+              <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-white">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-4 space-y-6">
+              {/* Import Section */}
+              <div>
+                <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-blue-400">upload</span>
+                  Import Calendar
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Import from URL</label>
+                    <div className="flex gap-2">
+                      <input
+                        value={calendarUrl}
+                        onChange={(e) => setCalendarUrl(e.target.value)}
+                        placeholder="https://.../calendar.ics"
+                        className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      />
+                      <button onClick={importFromUrl} disabled={importing} className="btn btn-primary text-sm px-3">
+                        {importing ? 'Loading...' : 'Import'}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Or upload .ics file</label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".ics,text/calendar"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) importFromFile(f);
+                      }}
+                    />
+                    <button
+                      className="btn btn-secondary w-full text-sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={importing}
+                    >
+                      Choose file
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Timezone correction: {tzOffsetMins >= 0 ? '+' : ''}{tzOffsetMins} minutes</label>
+                    <input
+                      type="range"
+                      min={-720}
+                      max={720}
+                      step={15}
+                      value={tzOffsetMins}
+                      onChange={(e) => setTzOffsetMins(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Coding */}
+              <div>
+                <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-400">palette</span>
+                  Color Coding
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <div className="w-4 h-4 rounded bg-blue-500"></div>
+                    <span className="text-sm text-gray-300 flex-1">Telehealth / Follow-up</span>
+                    <span className="text-xs text-gray-500">Default</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <div className="w-4 h-4 rounded bg-red-500"></div>
+                    <span className="text-sm text-gray-300 flex-1">Intake / Evaluation / Assessment</span>
+                    <span className="text-xs text-gray-500">Keywords</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Colors are automatically assigned based on appointment title keywords.
+                  </p>
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div>
+                <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-400">tune</span>
+                  Display Options
+                </h4>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-gray-300">Show appointment location</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-gray-300">Show time on calendar dots</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {importError && (
+              <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                <span className="material-symbols-outlined">error</span>
+                {importError}
+              </div>
+            )}
+
+            <div className="p-4 border-t border-white/10">
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="w-full py-2 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
