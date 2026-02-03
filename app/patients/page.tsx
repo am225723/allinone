@@ -498,16 +498,21 @@ export default function PatientsPage() {
               {eventsForDay.map((ev) => {
                 const dayStart = new Date(selectedDay);
                 dayStart.setHours(8, 0, 0, 0);
+                const totalHours = slots.length;
 
-                const startH = clamp(0, hoursBetween(dayStart, ev.start), 10);
-                const endH = clamp(0, hoursBetween(dayStart, ev.end), 10);
+                const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
+                const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
                 const top = startH * 64;
                 const height = Math.max(50, (endH - startH) * 64);
 
-                const isBlue = ev.color === '#3b82f6';
-                const bgColor = isBlue ? 'bg-blue-500' : 'bg-red-500';
-                const borderColor = isBlue ? 'border-blue-400' : 'border-red-400';
-                const textSecondary = isBlue ? 'text-blue-100' : 'text-red-100';
+                const summaryLower = (ev.summary || '').toLowerCase();
+                const locationLower = (ev.location || '').toLowerCase();
+                const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
+                const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
+                
+                const bgColor = isIntake ? 'bg-red-500' : 'bg-blue-500';
+                const borderColor = isIntake ? 'border-red-400' : 'border-blue-400';
+                const textSecondary = isIntake ? 'text-red-100' : 'text-blue-100';
 
                 return (
                   <button
@@ -524,7 +529,7 @@ export default function PatientsPage() {
                         </p>
                       </div>
                       <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
-                        {ev.location?.toLowerCase().includes('tele') ? 'videocam' : 'assignment_ind'}
+                        {isTelehealth ? 'videocam' : 'assignment_ind'}
                       </span>
                     </div>
                   </button>

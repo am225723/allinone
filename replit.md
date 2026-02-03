@@ -280,6 +280,11 @@ Set in Supabase Dashboard > Project Settings > Edge Functions:
 - Supabase Edge Functions auto-fallback to Next.js API routes if not deployed
 
 ## Recent Changes
+- 2026-02-03: Redesigned /patients page with Clinical Dashboard layout matching Stitch reference
+- 2026-02-03: Added 4 stat cards with neon glow effects (Appointments, Pending Notes, Weekly, Revenue)
+- 2026-02-03: Built Daily Agenda timeline with colored appointment blocks (blue=telehealth, red=intake)
+- 2026-02-03: Built Appointment Details panel with patient info, dates, and editable notes
+- 2026-02-03: Created /api/calendar/import endpoint for iCal URL imports
 - 2026-02-02: Migrated to Supabase Edge Functions (Deno) as primary backend
 - 2026-02-02: Created 31 Supabase Edge Functions for all API operations
 - 2026-02-02: Added supabase-functions.ts helper for frontend integration
