@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Combined Clinical Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6", // Blue
+                        "background-light": "#f3f4f6",
+                        "background-dark": "#0f1115",
+                        "surface-dark": "#181b21",
+                        "surface-light": "#ffffff",
+                        "border-dark": "#2d333b",
+                        "border-light": "#e5e7eb",
+                        "accent-blue": "#3b82f6",
+                        "accent-red": "#ef4444",
+                        "accent-green": "#10b981",
+                        "accent-purple": "#8b5cf6",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'lg': '0.75rem',
+                        'xl': '1rem',
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181b21;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d333b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        .neon-border-blue {
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3), inset 0 0 5px rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        .neon-border-red {
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3), inset 0 0 5px rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+        .neon-border-green {
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3), inset 0 0 5px rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-300 min-h-screen flex font-body">
+<aside class="w-16 flex-shrink-0 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex flex-col items-center py-6 gap-6 hidden md:flex">
+<div class="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-icons-outlined text-xl">dashboard</span>
+</div>
+<nav class="flex flex-col gap-4 w-full items-center">
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">calendar_today</span>
+</button>
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">people</span>
+</button>
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">folder</span>
+</button>
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">chat_bubble_outline</span>
+</button>
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">pie_chart</span>
+</button>
+</nav>
+<div class="mt-auto flex flex-col gap-4">
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-outlined">settings</span>
+</button>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto h-screen p-4 md:p-8">
+<header class="flex justify-between items-start mb-8">
+<div>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Combined Clinical Dashboard</h1>
+<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Clinical calendar • appointment details, with EHR import and timeline correction.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-icons-outlined">notifications</span>
+<span class="absolute top-8 right-16 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background-dark"></span>
+</button>
+<img alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-border-light dark:border-border-dark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoq4GFzOrhkX7HtBKZ-BKUXykQ9RIaHTZotfXJ_JvaVchPb1XLgdrZNbIxUWdb1IXlEc-HFHN2D11G9O4lMn9jrm7mVRayD-dGxjTUeq9CRj6Widby-A7VxTvM_Oi0DghmR9gDyklc3ksNOdswCt8an3JpE1QpfaRobefd2xsbc2Jw_Sq1qX0UpwoM5aaH_0Hpowsls80mFSSQkeXisZBx7l94KH43GxaDBmODIsQBOTxxFxsGi8WcNSXdbXhjZWkQaumzfKs9o5A"/>
+</div>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 neon-border-blue relative overflow-hidden group">
+<div class="flex justify-between items-start mb-2">
+<span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Todays Appointments</span>
+<div class="p-1.5 bg-blue-500/10 rounded text-blue-500">
+<span class="material-icons-outlined text-lg">event</span>
+</div>
+</div>
+<div class="text-3xl font-bold text-gray-900 dark:text-white">331</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 neon-border-red relative overflow-hidden">
+<div class="flex justify-between items-start mb-2">
+<span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Pending Notes</span>
+<div class="p-1.5 bg-red-500/10 rounded text-red-500">
+<span class="material-icons-outlined text-lg">description</span>
+</div>
+</div>
+<div class="text-3xl font-bold text-gray-900 dark:text-white">6</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 neon-border-blue relative overflow-hidden">
+<div class="flex justify-between items-start mb-2">
+<span class="text-gray-500 dark:text-gray-400 text-sm font-medium">This Weeks Appointments</span>
+<div class="p-1.5 bg-blue-500/10 rounded text-blue-500">
+<span class="material-icons-outlined text-lg">check_circle</span>
+</div>
+</div>
+<div class="text-3xl font-bold text-gray-900 dark:text-white">30</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 neon-border-green relative overflow-hidden">
+<div class="flex justify-between items-start mb-2">
+<span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Todays Revenue</span>
+<div class="p-1.5 bg-green-500/10 rounded text-green-500">
+<span class="material-icons-outlined text-lg">attach_money</span>
+</div>
+</div>
+<div class="text-3xl font-bold text-gray-900 dark:text-white">$196.70</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+<div class="lg:col-span-7 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark p-6 h-[800px] flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Daily Agenda</h2>
+<div class="flex items-center gap-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+<button class="px-3 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white"><span class="material-icons-outlined text-sm align-middle">chevron_left</span> Prev</button>
+<button class="px-3 py-1 bg-white dark:bg-gray-700 shadow-sm rounded text-gray-900 dark:text-white font-medium">Today</button>
+<button class="px-3 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white">Next <span class="material-icons-outlined text-sm align-middle">chevron_right</span></button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto relative custom-scrollbar pr-2">
+<div class="absolute w-full h-full pointer-events-none flex flex-col text-xs text-gray-500 dark:text-gray-600 font-mono">
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">8 AM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">9 AM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">10 AM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">11 AM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">12 PM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">1 PM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">2 PM</div>
+<div class="border-t border-gray-200 dark:border-gray-800 h-16 pt-1">3 PM</div>
+</div>
+<div class="absolute top-[80px] left-12 right-2 bg-blue-500 rounded-lg p-3 shadow-lg z-10 border border-blue-400">
+<div class="flex justify-between items-start text-white">
+<div>
+<h3 class="font-semibold text-sm">Follow-up: Anxiety</h3>
+<p class="text-xs text-blue-100 mt-0.5">09:00 AM - 10:00 AM | Telehealth</p>
+</div>
+<span class="material-icons-outlined text-white/70 text-sm">videocam</span>
+</div>
+</div>
+<div class="absolute top-[220px] left-12 right-2 bg-red-500 rounded-lg p-3 shadow-lg z-10 border border-red-400">
+<div class="flex justify-between items-start text-white">
+<div>
+<h3 class="font-semibold text-sm">Intake: ADHD Evaluation</h3>
+<p class="text-xs text-red-100 mt-0.5">11:30 AM - 12:45 PM | Office</p>
+</div>
+<span class="material-icons-outlined text-white/70 text-sm">assignment_ind</span>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark p-6 h-[800px] flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Appointment Details</h2>
+<div class="w-8 h-8 rounded bg-blue-500/20 text-blue-500 flex items-center justify-center">
+<span class="material-icons-outlined text-sm">edit</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pr-2 space-y-4">
+<div>
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Patient Name</label>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                            Jennie Rivers
+                        </div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start</label>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                02/11/2024, 9:00 AM
+                             </div>
+</div>
+<div>
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">End</label>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                02/11/2024, 10:00 AM
+                             </div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Appointment Type</label>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                Follow-up
+                             </div>
+</div>
+<div>
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</label>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                Telehealth
+                             </div>
+</div>
+</div>
+<div class="pt-2">
+<h4 class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 font-semibold">Client</h4>
+<div class="space-y-3">
+<div class="grid grid-cols-2 gap-4">
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                    Female
+                                </div>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                    1989-07-16
+                                </div>
+</div>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200 flex justify-between items-center">
+<span>(555) 055-0158</span>
+<span class="material-icons-outlined text-xs text-gray-400">phone</span>
+</div>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200 flex justify-between items-center">
+<span class="truncate">jennie.rivers@example.com</span>
+<span class="material-icons-outlined text-xs text-gray-400">email</span>
+</div>
+<div class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
+                                123 Main St, New York, NY
+                             </div>
+</div>
+</div>
+<div class="pt-2">
+<label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Appointment notes...</label>
+<textarea class="w-full bg-gray-50 dark:bg-[#1f2329] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-200 h-24 resize-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Type notes here..."></textarea>
+</div>
+</div>
+<div class="pt-4 border-t border-border-light dark:border-border-dark mt-auto">
+<button class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-purple-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 group">
+<span class="material-icons-outlined animate-pulse group-hover:animate-none">auto_awesome</span>
+                            Create Clinical Note
+                        </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark p-6">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Clinical Monthly Calendar View</h2>
+<h3 class="text-2xl font-bold mt-1 text-gray-900 dark:text-white">February 2024</h3>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-icons-outlined text-sm">chevron_left</span>
+</button>
+<button class="px-4 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                        Today
+                    </button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-icons-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="w-full">
+<div class="grid grid-cols-7 border-b border-border-light dark:border-border-dark pb-2 mb-2">
+<div class="text-center text-xs font-medium text-gray-400">Sun</div>
+<div class="text-center text-xs font-medium text-gray-400">Mon</div>
+<div class="text-center text-xs font-medium text-gray-400">Tue</div>
+<div class="text-center text-xs font-medium text-gray-400">Wed</div>
+<div class="text-center text-xs font-medium text-gray-400">Thu</div>
+<div class="text-center text-xs font-medium text-gray-400">Fri</div>
+<div class="text-center text-xs font-medium text-gray-400">Sat</div>
+</div>
+<div class="grid grid-cols-7 gap-1 auto-rows-fr h-[400px]">
+<div class="p-2 text-right text-gray-300 dark:text-gray-600 text-sm border-r border-b border-border-light dark:border-border-dark/30 h-24">27</div>
+<div class="p-2 text-right text-gray-300 dark:text-gray-600 text-sm border-r border-b border-border-light dark:border-border-dark/30 h-24">28</div>
+<div class="p-2 text-right text-gray-300 dark:text-gray-600 text-sm border-r border-b border-border-light dark:border-border-dark/30 h-24">29</div>
+<div class="p-2 text-right text-gray-300 dark:text-gray-600 text-sm border-r border-b border-border-light dark:border-border-dark/30 h-24">30</div>
+<div class="p-2 text-right text-gray-300 dark:text-gray-600 text-sm border-r border-b border-border-light dark:border-border-dark/30 h-24">31</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">1</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">2</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">3</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">4</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">5</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">6</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">7</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">8</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">9</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">10</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">11</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24 bg-blue-500/5">
+<div class="text-right text-sm font-bold text-primary">12</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">13</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">14</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24"><div class="text-right text-sm text-gray-700 dark:text-gray-300">15</div></div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24"><div class="text-right text-sm text-gray-700 dark:text-gray-300">16</div></div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24"><div class="text-right text-sm text-gray-700 dark:text-gray-300">17</div></div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">18</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">19</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">20</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+<div class="p-2 relative border-r border-b border-border-light dark:border-border-dark/30 h-24">
+<div class="text-right text-sm text-gray-700 dark:text-gray-300">21</div>
+<div class="flex justify-end gap-1 mt-1">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Check system preference or default to dark mode for the "neon" aesthetic
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            // Defaulting to dark to match the screenshot vibe initially
+             document.documentElement.classList.add('dark');
+        }
+    </script>
+</body></html>
