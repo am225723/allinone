@@ -59,3 +59,13 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **AI Services:** Perplexity AI
 - **Push Notifications:** OneSignal (for web and mobile push)
 - **Deployment:** Vercel (for hosting, Edge Functions, and Cron Jobs)
+
+## Recent Changes
+- 2026-02-03: Added "Note AI" link in sidebar navigation (standalone, not attached to client)
+- 2026-02-03: Added manual patient linking with search dropdown when no appointment selected
+- 2026-02-03: Added Template creation in Template Settings (custom templates with sections)
+- 2026-02-03: Added Google Drive file import in Session Inputs (alongside local upload)
+- 2026-02-03: Added "Save to Patient Folder" button that exports PDF to correct patient folder on Google Drive
+- 2026-02-03: Redesigned /noteai page - merged Template + Prompt Profile into single Template
+- 2026-02-03: Replaced middle column with Clinical Copilot panel (pre-flight checks + follow-up questions)
+- 2026-02-03: Added session snapshot, section completeness tracking, risk assessment status, diagnosis suggestions

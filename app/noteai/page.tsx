@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
+type Patient = {
+  id: string;
+  name: string;
+  mrn?: string;
+  dob?: string;
+};
+
 type Appointment = {
   id: string;
   patientName: string;
@@ -32,6 +39,7 @@ type Template = {
   };
   systemPrompt: string;
   description: string;
+  isCustom?: boolean;
 };
 
 type UploadedFile = {
@@ -42,6 +50,14 @@ type UploadedFile = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   content?: string;
   transcript?: string;
+  source: 'local' | 'gdrive';
+};
+
+type DriveFile = {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
 };
 
 type NoteVersion = {
@@ -73,7 +89,22 @@ type DiagnosisSuggestion = {
   confidence: 'high' | 'medium' | 'low';
 };
 
-const TEMPLATES: Template[] = [
+const SAMPLE_PATIENTS: Patient[] = [
+  { id: 'p1', name: 'Jennie Rivers', mrn: 'MRN-2024-0158', dob: '07/16/1989' },
+  { id: 'p2', name: 'Michael Chen', mrn: 'MRN-2024-0203', dob: '03/22/1975' },
+  { id: 'p3', name: 'Sarah Martinez', mrn: 'MRN-2024-0087', dob: '11/08/1992' },
+  { id: 'p4', name: 'David Thompson', mrn: 'MRN-2024-0312', dob: '06/30/1968' },
+  { id: 'p5', name: 'Emily Watson', mrn: 'MRN-2024-0445', dob: '09/14/2001' },
+];
+
+const SAMPLE_DRIVE_FILES: DriveFile[] = [
+  { id: 'gf1', name: 'Session_Audio_20260203.mp3', mimeType: 'audio/mpeg', modifiedTime: '2026-02-03T10:30:00Z' },
+  { id: 'gf2', name: 'Previous_Notes.pdf', mimeType: 'application/pdf', modifiedTime: '2026-02-01T14:20:00Z' },
+  { id: 'gf3', name: 'Intake_Form_Scan.pdf', mimeType: 'application/pdf', modifiedTime: '2026-01-28T09:15:00Z' },
+  { id: 'gf4', name: 'Video_Session_Recording.mp4', mimeType: 'video/mp4', modifiedTime: '2026-02-02T16:45:00Z' },
+];
+
+const DEFAULT_TEMPLATES: Template[] = [
   {
     id: 'new-client-summary',
     name: 'New Client Summary',
@@ -152,16 +183,22 @@ export default function NoteAIPage() {
   const appointmentId = searchParams.get('appointmentId');
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [linkedPatient, setLinkedPatient] = useState<Patient | null>(null);
+  const [showPatientPicker, setShowPatientPicker] = useState(false);
+  const [patientSearch, setPatientSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(TEMPLATES[0].id);
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(DEFAULT_TEMPLATES[0].id);
+  const [templates, setTemplates] = useState<Template[]>(DEFAULT_TEMPLATES);
 
   const [typedNotes, setTypedNotes] = useState('');
   const [clinicianOverrides, setClinicianOverrides] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [showDrivePicker, setShowDrivePicker] = useState(false);
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>(SAMPLE_DRIVE_FILES);
+  const [loadingDrive, setLoadingDrive] = useState(false);
 
   const [tone, setTone] = useState<'clinical' | 'concise' | 'balanced'>('balanced');
   const [detailLevel, setDetailLevel] = useState<'brief' | 'standard' | 'detailed'>('standard');
@@ -181,7 +218,11 @@ export default function NoteAIPage() {
   const [noteVersions, setNoteVersions] = useState<NoteVersion[]>([]);
 
   const [showTemplateSettings, setShowTemplateSettings] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateDescription, setNewTemplateDescription] = useState('');
+  const [newTemplateSections, setNewTemplateSections] = useState<TemplateSection[]>([{ name: '', required: true, guidance: '' }]);
+  const [newTemplatePrompt, setNewTemplatePrompt] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -190,22 +231,32 @@ export default function NoteAIPage() {
   useEffect(() => {
     if (appointmentId) {
       setLoading(false);
+      const patient = SAMPLE_PATIENTS[0];
+      setLinkedPatient(patient);
       setAppointment({
         id: appointmentId,
-        patientName: 'Jennie Rivers',
-        mrn: 'MRN-2024-0158',
-        dob: '07/16/1989',
+        patientName: patient.name,
+        mrn: patient.mrn,
+        dob: patient.dob,
         dateOfService: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         appointmentType: 'Follow-up',
         notes: 'Patient reports improved sleep patterns. Continue current medication regimen.',
       });
     } else {
       setLoading(false);
-      setError('No appointment selected');
     }
   }, [appointmentId]);
 
   const currentTemplate = useMemo(() => templates.find(t => t.id === selectedTemplate), [templates, selectedTemplate]);
+
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch) return SAMPLE_PATIENTS;
+    const search = patientSearch.toLowerCase();
+    return SAMPLE_PATIENTS.filter(p => 
+      p.name.toLowerCase().includes(search) || 
+      p.mrn?.toLowerCase().includes(search)
+    );
+  }, [patientSearch]);
 
   useEffect(() => {
     if (currentTemplate) {
@@ -217,7 +268,25 @@ export default function NoteAIPage() {
     }
   }, [currentTemplate]);
 
-  const hasTranscripts = uploadedFiles.some(f => f.transcript && f.status === 'ready');
+  function selectPatient(patient: Patient) {
+    setLinkedPatient(patient);
+    setAppointment({
+      id: `manual-${patient.id}`,
+      patientName: patient.name,
+      mrn: patient.mrn,
+      dob: patient.dob,
+      dateOfService: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+      appointmentType: 'Session',
+      notes: '',
+    });
+    setShowPatientPicker(false);
+    setPatientSearch('');
+  }
+
+  function unlinkPatient() {
+    setLinkedPatient(null);
+    setAppointment(null);
+  }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -229,6 +298,7 @@ export default function NoteAIPage() {
       type: file.type,
       size: file.size,
       status: 'queued' as const,
+      source: 'local' as const,
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
@@ -249,12 +319,86 @@ export default function NoteAIPage() {
     });
   }
 
+  function importFromDrive(file: DriveFile) {
+    const newFile: UploadedFile = {
+      id: `gdrive-${file.id}`,
+      name: file.name,
+      type: file.mimeType,
+      size: 0,
+      status: 'queued',
+      source: 'gdrive',
+    };
+
+    setUploadedFiles(prev => [...prev, newFile]);
+    setShowDrivePicker(false);
+
+    setTimeout(() => {
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { ...f, status: 'processing' } : f));
+    }, 500);
+
+    setTimeout(() => {
+      const isAudioVideo = file.mimeType.startsWith('audio/') || file.mimeType.startsWith('video/');
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? {
+        ...f,
+        status: 'ready',
+        content: isAudioVideo ? undefined : `[Extracted text from Google Drive: ${file.name}]`,
+        transcript: isAudioVideo ? `[Transcribed content from Google Drive: ${file.name}]` : undefined,
+      } : f));
+    }, 2500);
+  }
+
   function removeFile(id: string) {
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
   }
 
   function updateQuestionAnswer(id: string, answer: string) {
     setFollowUpQuestions(prev => prev.map(q => q.id === id ? { ...q, answer } : q));
+  }
+
+  function addNewSection() {
+    setNewTemplateSections(prev => [...prev, { name: '', required: false, guidance: '' }]);
+  }
+
+  function updateSection(index: number, field: keyof TemplateSection, value: any) {
+    setNewTemplateSections(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  }
+
+  function removeSection(index: number) {
+    if (newTemplateSections.length > 1) {
+      setNewTemplateSections(prev => prev.filter((_, i) => i !== index));
+    }
+  }
+
+  function saveNewTemplate() {
+    if (!newTemplateName.trim() || newTemplateSections.every(s => !s.name.trim())) return;
+
+    const newTemplate: Template = {
+      id: `custom-${Date.now()}`,
+      name: newTemplateName,
+      description: newTemplateDescription || 'Custom template',
+      sections: newTemplateSections.filter(s => s.name.trim()),
+      defaults: { tone: 'balanced', detailLevel: 'standard', includeRiskAssessment: true, includeDiagnosis: true, includeTreatmentPlan: true },
+      systemPrompt: newTemplatePrompt || 'Generate a clinical note following the template structure.',
+      isCustom: true,
+    };
+
+    setTemplates(prev => [...prev, newTemplate]);
+    setSelectedTemplate(newTemplate.id);
+    setShowNewTemplateForm(false);
+    setNewTemplateName('');
+    setNewTemplateDescription('');
+    setNewTemplateSections([{ name: '', required: true, guidance: '' }]);
+    setNewTemplatePrompt('');
+  }
+
+  function deleteTemplate(id: string) {
+    const template = templates.find(t => t.id === id);
+    if (!template?.isCustom) return;
+    
+    setTemplates(prev => prev.filter(t => t.id !== id));
+    if (selectedTemplate === id) {
+      setSelectedTemplate(DEFAULT_TEMPLATES[0].id);
+    }
   }
 
   async function runCopilot() {
@@ -339,19 +483,22 @@ export default function NoteAIPage() {
   }
 
   async function generateNote() {
-    if (!currentTemplate || !appointment) return;
+    if (!currentTemplate) return;
     
     setGenerating(true);
     await new Promise(r => setTimeout(r, 2000));
 
-    const dos = appointment.dateOfService;
+    const dos = appointment?.dateOfService || new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const templateName = currentTemplate.name.toUpperCase();
+    const patientName = linkedPatient?.name || appointment?.patientName || '[CLIENT NAME]';
+    const mrn = linkedPatient?.mrn || appointment?.mrn || '[NOT REPORTED]';
+    const dob = linkedPatient?.dob || appointment?.dob || '[NOT REPORTED]';
 
     const letterhead = `                                                                                         ${templateName}
                                                     —-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-                                                            Patient Name: ${appointment.patientName}          MRN: ${appointment.mrn || '[NOT REPORTED]'}
-                                                            Date of Birth: ${appointment.dob || '[NOT REPORTED]'} Date of Service: ${dos}
+                                                            Patient Name: ${patientName}          MRN: ${mrn}
+                                                            Date of Birth: ${dob} Date of Service: ${dos}
                                                                                            Provider: Douglas Zelisko, M.D.
 
 
@@ -405,7 +552,7 @@ ${answersForSection ? `\n**Additional Notes:** ${answersForSection}` : ''}
 
 `;
       } else if (section.name === 'Data') {
-        content += `Patient presented for ${appointment.appointmentType} visit. ${typedNotes || appointment.notes || 'Session conducted as scheduled.'}
+        content += `Patient presented for ${appointment?.appointmentType || 'session'}. ${typedNotes || appointment?.notes || 'Session conducted as scheduled.'}
 ${answersForSection ? `\n${answersForSection}` : ''}
 
 `;
@@ -449,11 +596,21 @@ ${answersForSection ? `\n${answersForSection}` : ''}
   }
 
   async function exportToPDF() {
+    if (!linkedPatient && !appointment) {
+      alert('Please link a patient first to save to their folder.');
+      return;
+    }
+
     setExporting(true);
     await new Promise(r => setTimeout(r, 1500));
     setExporting(false);
-    const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '');
-    alert(`Note exported to Google Drive: /PatientForms/${appointment?.patientName}/${dateStr}_Note.pdf`);
+
+    const patientName = linkedPatient?.name || appointment?.patientName || 'Unknown';
+    const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+    const folderPath = `/PatientForms/${patientName.replace(/\s+/g, '_')}`;
+    const fileName = `${dateStr}_${currentTemplate?.name.replace(/\s+/g, '_')}.pdf`;
+    
+    alert(`Note exported to Google Drive:\n${folderPath}/${fileName}`);
   }
 
   if (loading) {
@@ -461,23 +618,7 @@ ${answersForSection ? `\n${answersForSection}` : ''}
       <div className="container py-12 flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading appointment...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !appointment) {
-    return (
-      <div className="container py-12">
-        <div className="card max-w-md mx-auto text-center">
-          <span className="material-symbols-outlined text-5xl text-red-400 mb-4">error</span>
-          <h2 className="text-xl font-semibold text-white mb-2">No Appointment Selected</h2>
-          <p className="text-gray-400 mb-6">Please select an appointment from the calendar to generate a clinical note.</p>
-          <button onClick={() => router.push('/patients')} className="btn btn-primary">
-            <span className="material-symbols-outlined">arrow_back</span>
-            Back to Calendar
-          </button>
+          <p className="text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -498,13 +639,34 @@ ${answersForSection ? `\n${answersForSection}` : ''}
               </button>
               <h1 className="text-2xl font-bold text-white">Clinical Note Generator</h1>
             </div>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-400 bg-white/5 rounded-lg p-3">
-              <span><strong className="text-white">{appointment.patientName}</strong></span>
-              <span>MRN: {appointment.mrn || 'N/A'}</span>
-              <span>DOB: {appointment.dob}</span>
-              <span>DOS: {appointment.dateOfService}</span>
-              <span>{appointment.appointmentType}</span>
-            </div>
+
+            {/* Patient Info / Link Patient */}
+            {linkedPatient || appointment ? (
+              <div className="flex flex-wrap gap-4 text-sm text-gray-400 bg-white/5 rounded-lg p-3">
+                <span><strong className="text-white">{linkedPatient?.name || appointment?.patientName}</strong></span>
+                <span>MRN: {linkedPatient?.mrn || appointment?.mrn || 'N/A'}</span>
+                <span>DOB: {linkedPatient?.dob || appointment?.dob}</span>
+                <span>DOS: {appointment?.dateOfService}</span>
+                {appointment?.appointmentType && <span>{appointment.appointmentType}</span>}
+                <button
+                  onClick={unlinkPatient}
+                  className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">link_off</span>
+                  Unlink
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPatientPicker(true)}
+                  className="flex items-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-white/40 rounded-lg text-gray-400 hover:text-white transition w-full"
+                >
+                  <span className="material-symbols-outlined">person_add</span>
+                  <span>Link to Patient</span>
+                </button>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setShowTemplateSettings(true)}
@@ -514,6 +676,49 @@ ${answersForSection ? `\n${answersForSection}` : ''}
             Template Settings
           </button>
         </header>
+
+        {/* Patient Picker Dropdown */}
+        {showPatientPicker && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-32" onClick={() => setShowPatientPicker(false)}>
+            <div className="bg-[#1a1d24] border border-white/10 rounded-xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="p-4 border-b border-white/10">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">search</span>
+                  <input
+                    type="text"
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                    placeholder="Search by name or MRN..."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder:text-gray-500"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {filteredPatients.map(patient => (
+                  <button
+                    key={patient.id}
+                    onClick={() => selectPatient(patient)}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition text-left"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold">
+                      {patient.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-sm text-white font-medium">{patient.name}</div>
+                      <div className="text-xs text-gray-500">{patient.mrn} • DOB: {patient.dob}</div>
+                    </div>
+                  </button>
+                ))}
+                {filteredPatients.length === 0 && (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    No patients found
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 3-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -531,7 +736,7 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
               >
                 {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                  <option key={t.id} value={t.id}>{t.name}{t.isCustom ? ' (Custom)' : ''}</option>
                 ))}
               </select>
               <p className="text-xs text-gray-500 mt-2">{currentTemplate?.description}</p>
@@ -582,13 +787,22 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                     className="hidden"
                     onChange={handleFileUpload}
                   />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-2 border border-dashed border-white/20 rounded-lg text-sm text-gray-400 hover:text-white hover:border-white/40 transition flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-lg">cloud_upload</span>
-                    Audio, Video, PDF, Docs
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 py-2 border border-dashed border-white/20 rounded-lg text-sm text-gray-400 hover:text-white hover:border-white/40 transition flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-lg">cloud_upload</span>
+                      Local
+                    </button>
+                    <button
+                      onClick={() => setShowDrivePicker(true)}
+                      className="flex-1 py-2 border border-dashed border-white/20 rounded-lg text-sm text-gray-400 hover:text-white hover:border-white/40 transition flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-lg">add_to_drive</span>
+                      Drive
+                    </button>
+                  </div>
                   {uploadedFiles.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {uploadedFiles.map(f => (
@@ -598,6 +812,7 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                             f.status === 'processing' ? 'bg-yellow-500 animate-pulse' :
                             f.status === 'failed' ? 'bg-red-500' : 'bg-gray-500'
                           }`}></span>
+                          {f.source === 'gdrive' && <span className="material-symbols-outlined text-xs text-blue-400">add_to_drive</span>}
                           <span className="flex-1 truncate text-gray-300">{f.name}</span>
                           <button onClick={() => removeFile(f.id)} className="text-gray-500 hover:text-red-400">
                             <span className="material-symbols-outlined text-sm">close</span>
@@ -910,70 +1125,244 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                 </div>
                 <button
                   onClick={exportToPDF}
-                  disabled={exporting}
-                  className="w-full mt-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-lg text-xs text-white font-medium transition flex items-center justify-center gap-2"
+                  disabled={exporting || (!linkedPatient && !appointment)}
+                  className="w-full mt-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 rounded-lg text-xs text-white font-medium transition flex items-center justify-center gap-2"
                 >
                   {exporting ? (
                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Exporting...</>
                   ) : (
-                    <><span className="material-symbols-outlined text-base">cloud_upload</span> Export PDF to Google Drive</>
+                    <><span className="material-symbols-outlined text-base">add_to_drive</span> Save to Patient Folder</>
                   )}
                 </button>
+                {!linkedPatient && !appointment && (
+                  <p className="text-[10px] text-gray-500 text-center mt-1">Link a patient to save to their folder</p>
+                )}
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Template Settings Modal */}
-      {showTemplateSettings && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTemplateSettings(false)}>
-          <div className="bg-[#1a1d24] border border-white/10 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      {/* Google Drive Picker Modal */}
+      {showDrivePicker && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowDrivePicker(false)}>
+          <div className="bg-[#1a1d24] border border-white/10 rounded-xl max-w-md w-full max-h-[70vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-4 border-b border-white/10">
-              <h3 className="text-lg font-semibold text-white">Template Settings</h3>
-              <button onClick={() => setShowTemplateSettings(false)} className="text-gray-400 hover:text-white">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-400">add_to_drive</span>
+                Import from Google Drive
+              </h3>
+              <button onClick={() => setShowDrivePicker(false)} className="text-gray-400 hover:text-white">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-3">
-                {templates.map(t => (
-                  <div
-                    key={t.id}
-                    className={`p-3 rounded-lg border transition cursor-pointer ${
-                      selectedTemplate === t.id ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
-                    onClick={() => setSelectedTemplate(t.id)}
+              <div className="space-y-2">
+                {driveFiles.map(file => (
+                  <button
+                    key={file.id}
+                    onClick={() => importFromDrive(file)}
+                    className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg flex items-center gap-3 transition text-left"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-sm font-medium text-white">{t.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{t.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {t.sections.map(s => (
-                            <span key={s.name} className={`text-[10px] px-1.5 py-0.5 rounded ${s.required ? 'bg-blue-500/20 text-blue-300' : 'bg-white/5 text-gray-400'}`}>
-                              {s.name}
-                            </span>
-                          ))}
-                        </div>
+                    <span className="material-symbols-outlined text-gray-400">
+                      {file.mimeType.startsWith('audio/') ? 'audio_file' :
+                       file.mimeType.startsWith('video/') ? 'video_file' :
+                       file.mimeType.includes('pdf') ? 'picture_as_pdf' : 'description'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{file.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(file.modifiedTime).toLocaleDateString()}
                       </div>
-                      {selectedTemplate === t.id && (
-                        <span className="material-symbols-outlined text-blue-400">check_circle</span>
-                      )}
                     </div>
-                  </div>
+                    <span className="material-symbols-outlined text-blue-400">download</span>
+                  </button>
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="p-4 border-t border-white/10">
-              <button
-                onClick={() => setShowTemplateSettings(false)}
-                className="w-full py-2 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition"
-              >
-                Done
+      {/* Template Settings Modal */}
+      {showTemplateSettings && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowTemplateSettings(false); setShowNewTemplateForm(false); }}>
+          <div className="bg-[#1a1d24] border border-white/10 rounded-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">
+                {showNewTemplateForm ? 'Create New Template' : 'Template Settings'}
+              </h3>
+              <button onClick={() => { setShowTemplateSettings(false); setShowNewTemplateForm(false); }} className="text-gray-400 hover:text-white">
+                <span className="material-symbols-outlined">close</span>
               </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {showNewTemplateForm ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Template Name *</label>
+                    <input
+                      type="text"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="e.g., Medication Review"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Description</label>
+                    <input
+                      type="text"
+                      value={newTemplateDescription}
+                      onChange={(e) => setNewTemplateDescription(e.target.value)}
+                      placeholder="Brief description of when to use this template"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs text-gray-400">Sections *</label>
+                      <button
+                        onClick={addNewSection}
+                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">add</span>
+                        Add Section
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {newTemplateSections.map((section, index) => (
+                        <div key={index} className="flex gap-2 items-start bg-white/5 rounded-lg p-2">
+                          <div className="flex-1 space-y-2">
+                            <input
+                              type="text"
+                              value={section.name}
+                              onChange={(e) => updateSection(index, 'name', e.target.value)}
+                              placeholder="Section name"
+                              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white"
+                            />
+                            <input
+                              type="text"
+                              value={section.guidance || ''}
+                              onChange={(e) => updateSection(index, 'guidance', e.target.value)}
+                              placeholder="Guidance (optional)"
+                              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white"
+                            />
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={section.required}
+                                onChange={(e) => updateSection(index, 'required', e.target.checked)}
+                                className="rounded border-gray-600 text-blue-500 w-3.5 h-3.5"
+                              />
+                              <span className="text-xs text-gray-400">Required</span>
+                            </label>
+                          </div>
+                          {newTemplateSections.length > 1 && (
+                            <button
+                              onClick={() => removeSection(index)}
+                              className="text-gray-500 hover:text-red-400 p-1"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">System Prompt (optional)</label>
+                    <textarea
+                      value={newTemplatePrompt}
+                      onChange={(e) => setNewTemplatePrompt(e.target.value)}
+                      placeholder="Custom instructions for AI note generation..."
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-h-[80px] resize-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {templates.map(t => (
+                    <div
+                      key={t.id}
+                      className={`p-3 rounded-lg border transition ${
+                        selectedTemplate === t.id ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <button
+                          className="flex-1 text-left"
+                          onClick={() => setSelectedTemplate(t.id)}
+                        >
+                          <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                            {t.name}
+                            {t.isCustom && <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded">Custom</span>}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">{t.description}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {t.sections.map(s => (
+                              <span key={s.name} className={`text-[10px] px-1.5 py-0.5 rounded ${s.required ? 'bg-blue-500/20 text-blue-300' : 'bg-white/5 text-gray-400'}`}>
+                                {s.name}
+                              </span>
+                            ))}
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-2">
+                          {selectedTemplate === t.id && (
+                            <span className="material-symbols-outlined text-blue-400">check_circle</span>
+                          )}
+                          {t.isCustom && (
+                            <button
+                              onClick={() => deleteTemplate(t.id)}
+                              className="text-gray-500 hover:text-red-400 p-1"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-white/10 flex gap-3">
+              {showNewTemplateForm ? (
+                <>
+                  <button
+                    onClick={() => setShowNewTemplateForm(false)}
+                    className="flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveNewTemplate}
+                    disabled={!newTemplateName.trim() || newTemplateSections.every(s => !s.name.trim())}
+                    className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                  >
+                    Save Template
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowNewTemplateForm(true)}
+                    className="flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base">add</span>
+                    New Template
+                  </button>
+                  <button
+                    onClick={() => setShowTemplateSettings(false)}
+                    className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition"
+                  >
+                    Done
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

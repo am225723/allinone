@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { href: '/', icon: 'dashboard', label: 'Home', color: 'blue' },
   { href: '/patients', icon: 'clinical_notes', label: 'Patients', color: 'emerald' },
-  { href: '/notes', icon: 'description', label: 'Notes', color: 'cyan' },
+  { href: '/noteai', icon: 'edit_note', label: 'Note AI', color: 'cyan' },
   { href: '/tasks', icon: 'task_alt', label: 'Tasks', color: 'violet' },
   { href: '/openphone', icon: 'sms', label: 'Quo', color: 'orange' },
   { href: '/gmail', icon: 'mail', label: 'Mail', color: 'red' },
