@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 const navItems = [
@@ -31,6 +31,7 @@ const colorClasses: Record<string, { active: string; inactive: string; hover: st
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -49,6 +50,13 @@ export default function Sidebar() {
       console.error('Error checking admin access:', e);
     }
   }
+
+  const handleLogout = () => {
+    document.cookie = 'pin_authenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'user_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    router.push('/login');
+  };
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -130,6 +138,24 @@ export default function Sidebar() {
           </span>
         </button>
 
+        {/* Profile Button */}
+        <Link
+          href="/settings"
+          title="Profile"
+          className={`flex items-center gap-3 h-11 px-2.5 rounded-xl transition-all ${
+            isActive('/settings')
+              ? colorClasses.violet.active
+              : `${colorClasses.violet.inactive} ${colorClasses.violet.hover}`
+          }`}
+        >
+          <span className="material-symbols-outlined text-xl flex-shrink-0">
+            person
+          </span>
+          <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            Profile
+          </span>
+        </Link>
+
         {/* Admin Panel - shown if user has admin role */}
         {isAdmin && (
           <Link
@@ -149,6 +175,20 @@ export default function Sidebar() {
             </span>
           </Link>
         )}
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          title="Logout"
+          className="flex items-center gap-3 h-11 px-2.5 rounded-xl text-red-400/50 hover:bg-red-500/10 hover:text-red-400 transition-all"
+        >
+          <span className="material-symbols-outlined text-xl flex-shrink-0">
+            logout
+          </span>
+          <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            Logout
+          </span>
+        </button>
       </div>
     </aside>
   );
