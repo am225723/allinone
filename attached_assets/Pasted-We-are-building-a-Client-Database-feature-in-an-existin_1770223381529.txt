@@ -1,0 +1,251 @@
+We are building a “Client Database” feature in an existing Next.js app with:
+- Database: Supabase Postgres
+- Backend logic: Supabase Edge Functions (NOT Next.js API routes)
+- DB access: Supabase JS client
+- UI: React + TypeScript
+We also have existing Quo (phone/SMS) and Gmail areas, and identity matching must integrate there.
+
+GOAL
+Implement a single-clinic Client Database with:
+1) manual add/edit/archive clients
+2) multiple contacts per client (phones/emails) with primary flags
+3) CSV import/export with preview + mapping + error report
+4) “Unmatched Contacts Inbox” to link/create clients from Quo/Gmail identities
+5) Quo/Gmail UI banners and actions for Link/Create/View client
+
+IMPORTANT PRODUCT DECISIONS (no questions)
+- Add “Clients” to main sidebar.
+- Inbox is a tab/sub-section under Clients: /clients with tabs (Clients | Inbox).
+- One canonical entity: clients. MRN is optional + unique. Primary key is UUID, NOT MRN.
+
+SECURITY / PHI RULES
+- Never log full client data, imported rows, emails, or phone numbers.
+- Avoid putting MRN/DOB/phone/email in URLs or query params.
+- Store minimal metadata for inbound events (no message bodies).
+- Sanitize errors.
+- Add basic rate limiting to import + inbound functions.
+
+--------------------------------------------
+A) SUPABASE SQL (tables + indexes + triggers)
+--------------------------------------------
+
+Create tables:
+
+clients
+- id uuid pk default gen_random_uuid()
+- first_name text not null
+- last_name text not null
+- preferred_name text null
+- dob date null
+- mrn text null unique
+- status text not null default 'active' check in ('active','inactive','archived')
+- last_visit_at timestamptz null
+- notes_internal text null
+- created_at timestamptz not null default now()
+- updated_at timestamptz not null default now()
+
+client_contacts
+- id uuid pk default gen_random_uuid()
+- client_id uuid not null references clients(id) on delete cascade
+- type text not null check in ('phone','email')
+- value text not null  -- normalized E.164 / lowercase email
+- label text null
+- is_primary boolean not null default false
+- is_verified boolean not null default false
+- source text not null default 'manual' check in ('manual','quo','gmail','import')
+- created_at timestamptz not null default now()
+- updated_at timestamptz not null default now()
+Indexes/constraints:
+- unique(type, value)
+- index(client_id)
+- unique(client_id, type) where is_primary = true
+
+inbound_identity_events
+- id uuid pk default gen_random_uuid()
+- source text not null check in ('quo','gmail')
+- kind text not null check in ('phone','email')
+- value text null
+- display_value text null
+- occurred_at timestamptz not null default now()
+- status text not null default 'new' check in ('new','linked','ignored')
+- linked_client_id uuid null references clients(id)
+- meta jsonb null  -- minimal only
+- created_at timestamptz not null default now()
+- updated_at timestamptz not null default now()
+Indexes:
+- index(source, kind, status)
+- index(value)
+
+client_import_jobs
+- id uuid pk default gen_random_uuid()
+- filename text not null
+- created_at timestamptz not null default now()
+- total_rows int not null default 0
+- imported_count int not null default 0
+- updated_count int not null default 0
+- skipped_count int not null default 0
+- error_count int not null default 0
+- error_report jsonb null
+
+Add updated_at triggers for tables if not already present.
+
+RLS:
+- If auth exists, enable RLS and write policies so authenticated users can CRUD.
+- Edge Functions should forward user JWT for “act as user” operations.
+- For imports, use service role inside Edge Function, but still validate inputs strictly.
+
+--------------------------------------------
+B) EDGE FUNCTIONS (replace Next.js API routes)
+--------------------------------------------
+
+Create Supabase Edge Functions under supabase/functions/*.
+They should accept JSON bodies, validate with Zod, and return JSON responses.
+All heavy logic (imports, linking, inbound identity) must be in Edge Functions.
+
+Functions:
+
+1) clients-list
+GET-like behavior via POST body:
+{ search?, status?, sort?, page?, pageSize? }
+- Search clients by name/preferred_name, mrn, and client_contacts.value
+- Return paginated list with primary phone/email included
+
+2) clients-create
+{ firstName, lastName, preferredName?, dob?, mrn?, status? }
+- Insert client
+- Optional contacts can be added with separate function
+
+3) clients-get
+{ id }
+- Return client + contacts + basic fields
+
+4) clients-update
+{ id, firstName?, lastName?, preferredName?, dob?, mrn?, notesInternal? }
+- Update client, enforce mrn uniqueness
+
+5) clients-status
+{ id, status }  // active/inactive/archived
+
+6) contacts-add
+{ clientId, type, value, label?, isPrimary? }
+- Normalize phone/email
+- Enforce unique(type,value)
+- If isPrimary true, unset other primaries for that client+type inside a transaction-like sequence
+
+7) contacts-update
+{ contactId, label?, isPrimary?, isVerified? }
+
+8) contacts-delete
+{ contactId }
+
+9) inbox-list
+{ source?, status? } default status='new'
+- Return inbound_identity_events
+
+10) inbox-link
+{ eventId, clientId, makePrimary?, label? }
+- Create contact on client from event identity
+- Mark event linked
+
+11) inbox-create-client
+{ eventId, client: { firstName,lastName,preferredName?,dob?,mrn? }, makePrimary?, label? }
+- Create client + create contact + mark event linked
+- If identity value is null (normalization failed), require user to provide corrected value
+
+12) inbox-ignore
+{ eventId, reason? } -> set status=ignored
+
+13) integrations-quo-inbound
+{ phone, occurredAt?, meta? }
+- Normalize phone
+- Try match client_contacts(type='phone', value)
+- If matched: return { matched: true, clientId }
+- Else create inbound_identity_event and return { matched:false, eventId }
+
+14) integrations-gmail-inbound
+{ email, occurredAt?, meta? }
+- Normalize email
+- Match contacts, else create inbound_identity_event
+
+15) clients-import
+Accept either:
+- JSON: { filename, csvText, mapping, updateMatchesByMrn: boolean }
+OR
+- multipart upload if feasible in edge function environment
+Flow:
+- Parse CSV
+- Support headers: firstName,lastName,preferredName,dob,mrn,status,
+  phone,phoneLabel,phone2,phone2Label,email,emailLabel,email2,email2Label,...
+- Validate each row with Zod
+- Normalize phone/email
+- If MRN present:
+  - If updateMatchesByMrn true and existing found: update
+  - else if existing found: skip + error message
+- Insert clients + contacts
+- Create client_import_jobs summary + error_report
+- Return job summary and jobId
+
+16) clients-export
+{ } -> returns CSV text or a signed URL
+Include primary phone/email in export.
+
+Rate limiting:
+- Add simple in-memory rate limiting per IP (best effort) and note TODO for durable limiter.
+
+--------------------------------------------
+C) NEXT.JS FRONTEND (calls Edge Functions)
+--------------------------------------------
+
+Use supabase.functions.invoke('function-name', { body }) from the client (or server actions if present).
+Do NOT create Next.js API routes for these operations.
+
+UI:
+
+/clients page with tabs:
+- Clients tab:
+  - search/filter/sort
+  - Add Client
+  - Import CSV
+  - Export CSV
+  - table columns: Name, MRN, DOB, Status, Primary Phone, Primary Email, Updated
+- Inbox tab:
+  - list inbound_identity_events(status='new')
+  - actions: Link to Client (search modal), Create Client (modal), Ignore
+
+Client detail page /clients/[id]
+- demographics, MRN, DOB
+- contacts section (add phone/email, set primary)
+- internal notes
+
+Quo integration:
+- In Quo thread list/view:
+  - call integrations-quo-inbound when a new phone appears or thread opens
+  - show banner “Linked to {Client}” or “Unlinked number” + Link/Create CTA
+  - CTA opens modal or deep-links to Clients Inbox filtered to that event
+
+Gmail integration:
+- similarly call integrations-gmail-inbound with sender email
+- show banner and actions
+
+CSV import modal:
+- Use PapaParse on frontend to preview + mapping
+- Send csvText + mapping to clients-import edge function
+- Show results, allow downloading error report CSV (generated client-side from returned error_report or retrieved via jobId)
+
+--------------------------------------------
+D) DELIVERABLES
+--------------------------------------------
+
+- Supabase SQL migration files (or a single SQL file) creating tables, indexes, triggers, RLS policies.
+- All Edge Functions with Zod validation + normalization + safe error handling.
+- Updated Next.js UI pages and integration points in Quo/Gmail views.
+- README instructions:
+  - env vars
+  - deploying functions
+  - how matching works
+  - CSV template
+
+When finished, output:
+1) file tree changes,
+2) supabase CLI commands to deploy functions + apply migrations,
+3) CSV template example.
