@@ -25,6 +25,12 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   
+  // Skip chrome-extension and other non-http(s) URLs
+  const url = new URL(event.request.url);
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -35,6 +41,9 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME)
           .then((cache) => {
             cache.put(event.request, responseToCache);
+          })
+          .catch(() => {
+            // Ignore cache put errors for unsupported URLs
           });
         return response;
       })
