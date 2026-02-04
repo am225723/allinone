@@ -1,0 +1,268 @@
+Build a “Client Database” feature for our web app (Clinical Note Generator) for a SINGLE CLINIC (single-tenant). This database must support:
+1) manually adding/editing/archiving clients,
+2) importing clients from CSV (and exporting to CSV),
+3) search/filter/sort + client detail pages,
+4) tight integration with our Quo (phone/SMS) and Gmail areas so new phone numbers/emails can be matched to existing clients and/or added when it makes sense,
+5) an “Unmatched Contacts Inbox” workflow for linking/creating clients from Quo/Gmail identities.
+
+Primary goal: make the Client Database the source of truth for identity matching (phone/email), while still supporting MRN as a column.
+
+--------------------------------------------
+A) TECH STACK (use what exists; if not present, implement this)
+--------------------------------------------
+- Frontend: React + TypeScript
+- Backend: Node.js + Express
+- Database: SQLite + Prisma
+- Validation: Zod
+- Phone normalization: libphonenumber-js
+- CSV:
+  - Frontend: PapaParse for preview + header mapping
+  - Backend: csv-parse (or similar) for final import processing (choose one and keep it stable)
+- Auth:
+  - If existing auth exists, integrate.
+  - If no auth, add a simple session-gated stub with TODOs (do not overbuild).
+
+PHI / Safety Rules
+- Never console.log full client objects or imported rows.
+- Do not put MRN/DOB/phone/email in URLs or query strings.
+- Store minimal metadata for Quo/Gmail identity events (no message bodies).
+- Sanitize error messages (no raw payload dumps).
+- Add basic rate limiting to import + inbound identity endpoints.
+
+--------------------------------------------
+B) DATA MODEL (Prisma)
+--------------------------------------------
+
+Client (single clinic)
+- id: String @id @default(uuid())
+- firstName: String (required)
+- lastName: String (required)
+- preferredName: String? (optional)
+- dob: DateTime? (optional)
+- mrn: String? (optional, UNIQUE if present)   <-- ADD THIS COLUMN
+- emailPrimary: String? (optional)             <-- optional convenience field (still store real emails in ClientContact)
+- phonePrimary: String? (optional)             <-- optional convenience field (still store real phones in ClientContact)
+- status: enum("active","inactive","archived") default "active"
+- createdAt, updatedAt, lastVisitAt?
+- notesInternal: String? (text)
+
+ClientContact (new)
+A client can have multiple phones/emails.
+- id: String @id @default(uuid())
+- clientId: String (FK Client)
+- type: enum("phone","email")
+- value: String                     // normalized: E.164 for phone, lowercase for email
+- label: String?                    // Mobile, Home, Work
+- isPrimary: Boolean @default(false)
+- isVerified: Boolean @default(false)
+- source: enum("manual","quo","gmail","import")
+- createdAt, updatedAt
+
+Constraints / Indexes:
+- @@unique([type, value])           // global uniqueness across clients (single clinic)
+- @@index([clientId])
+
+InboundIdentityEvent (new)
+Tracks identities observed in Quo/Gmail that may or may not match existing clients.
+- id: String @id @default(uuid())
+- source: enum("quo","gmail")
+- kind: enum("phone","email")
+- value: String?                    // normalized (nullable if normalization fails)
+- displayValue: String?             // original raw text (e.g., "(212) 555-..." or "John <x@y.com>")
+- occurredAt: DateTime
+- status: enum("new","linked","ignored") @default("new")
+- linkedClientId: String? (FK Client nullable)
+- meta: Json?                       // minimal metadata ONLY (threadId/messageId/direction), no message bodies
+- createdAt, updatedAt
+
+Indexes:
+- @@index([source, kind, status])
+- @@index([value])
+
+ClientImportJob (new or keep)
+- id: String @id @default(uuid())
+- filename: String
+- createdAt: DateTime @default(now())
+- totalRows: Int
+- importedCount: Int
+- updatedCount: Int
+- skippedCount: Int
+- errorCount: Int
+- errorReport: Json?                // row-level errors; do not log PHI server-side
+
+--------------------------------------------
+C) NORMALIZATION + MATCHING
+--------------------------------------------
+
+Phone normalization:
+- Use libphonenumber-js to parse/format to E.164.
+- Store normalized E.164 in ClientContact.value.
+- If normalization fails, create InboundIdentityEvent with value=null and displayValue set; UI should prompt to correct.
+
+Email normalization:
+- Lowercase + trim. Basic validation.
+
+Matching priority for Quo/Gmail:
+1) Match ClientContact(type,value)
+2) If not matched:
+   - Create InboundIdentityEvent(status="new") and show in Inbox
+DO NOT auto-create clients silently.
+
+When linking inbound identity to existing client:
+- Create ClientContact(source=quo/gmail, isPrimary optional).
+- If client has no primary of that type, suggest making it primary.
+- Mark event linkedClientId + status="linked".
+
+When creating a new client from inbound identity:
+- Create Client with minimal required fields (firstName/lastName must be provided; allow placeholder “Unknown” only if user explicitly chooses).
+- Create ClientContact for inbound identity.
+- Mark event linked.
+
+Dedup rules in manual add/import:
+- MRN: if present and exists -> treat as match candidate:
+  - If “Update matches” enabled: update existing
+  - Else: skip with a warning
+- If MRN missing:
+  - name + DOB match should be a “possible duplicate” warning only; do not auto-merge.
+
+--------------------------------------------
+D) API ENDPOINTS (Express)
+--------------------------------------------
+
+Clients
+- GET  /api/clients?search=&status=&sort=&page=&pageSize=
+  search matches: lastName, firstName, preferredName, mrn, primary phone, primary email
+- POST /api/clients
+- GET  /api/clients/:id
+- PUT  /api/clients/:id
+- PATCH /api/clients/:id/status   body: { status }
+- GET  /api/clients/:id/contacts
+- POST /api/clients/:id/contacts  body: { type, value, label?, isPrimary? }
+- PATCH /api/contacts/:contactId  body: { label?, isPrimary?, isVerified? }
+- DELETE /api/contacts/:contactId
+
+Import / Export
+- POST /api/clients/import
+  supports CSV upload
+  supports header mapping payload
+  returns job summary and downloadable error report id
+- GET /api/clients/import/:jobId
+- GET /api/clients/export   returns CSV
+
+Inbound Identity Inbox
+- GET  /api/inbox/identities?source=&status=
+- POST /api/inbox/identities/link
+  body: { eventId, clientId, makePrimary?: boolean, label?: string }
+- POST /api/inbox/identities/create-client
+  body: { eventId, client: { firstName, lastName, preferredName?, dob?, mrn? }, makePrimary?: boolean, label?: string }
+- POST /api/inbox/identities/ignore
+  body: { eventId, reason?: string }
+
+Integration hooks (called by Quo/Gmail areas)
+- POST /api/integrations/quo/inbound
+  body: { phone: string, occurredAt?: string, meta?: { messageId?, direction?, threadId? } }
+- POST /api/integrations/gmail/inbound
+  body: { email: string, occurredAt?: string, meta?: { messageId?, threadId?, subjectHash? } }
+
+Inbound endpoints must:
+- normalize phone/email
+- attempt match against ClientContact
+- if matched: return { matched: true, clientId }
+- if not matched: create InboundIdentityEvent and return { matched: false, eventId }
+
+--------------------------------------------
+E) UI PAGES / COMPONENTS
+--------------------------------------------
+
+1) Add left nav item: “Clients”
+- Clients List page:
+  - Search box (name/MRN/phone/email)
+  - Status filter (active/inactive/archived)
+  - Sort dropdown (Last name, Updated, Last visit)
+  - Buttons: “Add Client” and “Import CSV”
+  - Table columns: Name | MRN | DOB | Status | Primary Phone | Primary Email | Updated
+  - Row click -> Client Detail page
+  - Empty states
+
+2) Client Detail page:
+- Header: name + status pill + actions (Edit, Archive/Restore)
+- Sections/tabs:
+  - Demographics (name, DOB, MRN, address)
+  - Contacts (phones/emails list with primary toggle + add new)
+  - Insurance (optional fields)
+  - Emergency contact (optional fields)
+  - Internal Notes (notesInternal)
+- Include a “Start New Note” button that navigates to the note generator with this client selected (stub OK).
+
+3) Add “Inbox” page (global nav or under Integrations):
+- “Unmatched Contacts”
+  - Tabs: All | Quo | Gmail
+  - Each row: source icon, kind (phone/email), value/displayValue, occurredAt
+  - Actions:
+    - Link to Client (search modal)
+    - Create Client (minimal form modal; prefill contact)
+    - Ignore
+
+4) Integrate into Quo UI:
+- In Quo conversation list:
+  - If phone matched -> show client name and a “linked” badge
+  - If unmatched -> “Unlinked number” badge + CTA “Link/Create”
+- In Quo thread view:
+  - Banner at top:
+    - “Linked to: Client Name” OR “Not linked yet”
+    - Buttons: Link / Create / View client
+
+5) Integrate into Gmail UI:
+- In Gmail thread list and thread view:
+  - Same banner behavior based on email match
+  - CTA to Link/Create/View client
+- When opening an email thread:
+  - Call /api/integrations/gmail/inbound (using the sender email) to match or create inbox event.
+
+--------------------------------------------
+F) CSV IMPORT DETAILS
+--------------------------------------------
+
+Supported CSV headers (case-insensitive):
+- firstName, lastName, preferredName, dob, mrn, status,
+- phone, phoneLabel, phone2, phone2Label,
+- email, emailLabel, email2, email2Label,
+- addressLine1, addressLine2, city, state, zip,
+- insuranceProvider, insuranceMemberId,
+- emergencyContactName, emergencyContactPhone
+
+Import flow:
+- UI modal:
+  - Download template button
+  - Upload CSV + preview first 10 rows
+  - Header mapping step (auto-detect)
+  - Toggle: “Update matches by MRN”
+  - Import button
+- Backend:
+  - Validate each row with Zod
+  - Normalize phones/emails and insert into ClientContact
+  - Create ClientImportJob with counts + errorReport
+  - Provide downloadable error report CSV (row number + message)
+
+--------------------------------------------
+G) QUALITY / DX
+--------------------------------------------
+- Provide Prisma schema + migration.
+- Provide seed script with 5 fake clients and multiple contacts.
+- Provide README section:
+  - How to add clients
+  - How to import/export CSV
+  - How Quo/Gmail matching works
+  - How the Inbox linking workflow works
+
+Deliverables checklist:
+- Working DB persistence
+- Working CRUD UI and API
+- Working import/export
+- Working Quo/Gmail identity matching + Inbox flows
+- No PHI in logs; safe defaults; validation everywhere
+
+At completion, output:
+1) file tree changes,
+2) instructions to run in Replit,
+3) the CSV template example in README.
