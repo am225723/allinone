@@ -696,7 +696,7 @@ export default function DashboardHome() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-semibold text-emerald-400">+12%</p>
-                  <p className="text-xs text-emerald-300/50">vs last week</p>
+                  <p adminclassName="text-xs text-emerald-300/50">vs last week</p>
                 </div>
               </div>
             </div>
