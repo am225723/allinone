@@ -32,8 +32,9 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Data Export:** Supports CSV, JSON, and HTML formats for various data types (summaries, drafts, emails, activity, daily_summary).
 
 ### Feature Specifications
-- **OpenPhone/Quo Integration:** SMS/Voice conversation management, AI-powered summaries, draft replies, bulk actions (approve, reject, archive), and scheduled cleanup.
-- **Gmail Integration:** Email triage with AI, scheduled triage, account management, and rule-based processing.
+- **Client Database:** Single-tenant client management with CRUD operations, multi-contact support (phones/emails), CSV import/export, identity matching for Quo/Gmail, and unmatched contacts inbox workflow.
+- **OpenPhone/Quo Integration:** SMS/Voice conversation management, AI-powered summaries, draft replies, bulk actions (approve, reject, archive), scheduled cleanup, and client identity matching.
+- **Gmail Integration:** Email triage with AI, scheduled triage, account management, rule-based processing, and client identity matching.
 - **AI Services:** Perplexity AI for draft responses, analysis, and clinical note generation.
 - **Message Templates:** Saved response templates with variable substitution, categorization, and usage tracking.
 - **Task Management:** List and Kanban views for tasks, with status, priority, checklists, and AI features for subtask suggestions.
@@ -45,7 +46,7 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Edge Computing:** Extensive use of Vercel Edge Functions and Supabase Edge Functions for performance and scalability, ensuring API routes are fast and globally distributed.
 - **Serverless Architecture:** Leveraging Supabase for database and authentication, combined with Vercel for frontend deployment and cron jobs, minimizes operational overhead.
 - **Modular Design:** Clear separation of concerns with `app/`, `components/`, `lib/`, and `supabase/` directories for maintainability and scalability.
-- **Database Schema:** Structured PostgreSQL database via Supabase, with tables for tracking runs, summaries, drafts, notifications, email logs, accounts, agent rules, suppressions, tasks, push devices, message templates, daily summaries, app settings, users, and clinical notes.
+- **Database Schema:** Structured PostgreSQL database via Supabase, with tables for tracking runs, summaries, drafts, notifications, email logs, accounts, agent rules, suppressions, tasks, push devices, message templates, daily summaries, app settings, users, clinical notes, clients, client_contacts, inbound_identity_events, and client_import_jobs.
 - **Security:** Environment variables for sensitive keys, admin password protection, and `CRON_SECRET` for cron job authentication.
 
 ## External Dependencies
@@ -61,11 +62,60 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Deployment:** Vercel (for hosting, Edge Functions, and Cron Jobs)
 
 ## Recent Changes
+- 2026-02-04: Security fix - Removed service role key exposure from browser code, migrated to Next.js API routes
+- 2026-02-04: Created 11 Next.js API routes for client operations (app/api/clients/, app/api/clients/inbox/, app/api/integrations/)
+- 2026-02-04: Updated lib/supabase-functions.ts with new function-to-route mappings
+- 2026-02-04: Implemented Client Database feature with full CRUD, multi-contact support, CSV import/export
+- 2026-02-04: Added 16 Supabase Edge Functions for client management (clients-list, clients-create, clients-get, clients-update, clients-status, contacts-add, contacts-update, contacts-delete, inbox-list, inbox-link, inbox-create-client, inbox-ignore, integrations-quo-inbound, integrations-gmail-inbound, clients-import, clients-export)
+- 2026-02-04: Created /clients page with Clients tab and Inbox tab for unmatched contacts
+- 2026-02-04: Created /clients/[id] detail page with demographics, contacts, insurance, and notes tabs
+- 2026-02-04: Added ClientMatchBanner component for Quo/Gmail identity matching integration
+- 2026-02-04: Added "Clients" to sidebar and bottom navigation
 - 2026-02-03: Added "Note AI" link in sidebar navigation (standalone, not attached to client)
 - 2026-02-03: Added manual patient linking with search dropdown when no appointment selected
 - 2026-02-03: Added Template creation in Template Settings (custom templates with sections)
 - 2026-02-03: Added Google Drive file import in Session Inputs (alongside local upload)
 - 2026-02-03: Added "Save to Patient Folder" button that exports PDF to correct patient folder on Google Drive
 - 2026-02-03: Redesigned /noteai page - merged Template + Prompt Profile into single Template
-- 2026-02-03: Replaced middle column with Clinical Copilot panel (pre-flight checks + follow-up questions)
-- 2026-02-03: Added session snapshot, section completeness tracking, risk assessment status, diagnosis suggestions
+
+## Client Database
+
+### How to Add Clients
+1. Navigate to `/clients` in the sidebar
+2. Click "Add Client" button
+3. Fill in first name, last name (required), and optional fields (preferred name, DOB, MRN, phone, email)
+4. Click "Create Client"
+
+### How to Import/Export CSV
+**Import:**
+1. Click "Import" button on /clients page
+2. Download the template CSV for reference
+3. Upload your CSV file
+4. Preview the data and optionally enable "Update matches by MRN"
+5. Click "Import Clients"
+
+**Export:**
+1. Click "Export" button on /clients page
+2. CSV file will download with all client data
+
+**CSV Template Headers:**
+`firstName,lastName,preferredName,dob,mrn,status,phone,phoneLabel,phone2,phone2Label,email,emailLabel,email2,email2Label,addressLine1,addressLine2,city,state,zip,insuranceProvider,insuranceMemberId,emergencyContactName,emergencyContactPhone`
+
+### How Quo/Gmail Matching Works
+1. When a phone/email appears in Quo or Gmail, the system calls the integration endpoint
+2. If the phone/email matches a client_contact, it returns the matched client
+3. If no match, an inbound_identity_event is created with status "new"
+4. Unmatched contacts appear in the Inbox tab under /clients
+5. From the Inbox, you can:
+   - **Link**: Associate the identity with an existing client
+   - **Create**: Create a new client from the identity
+   - **Ignore**: Dismiss the identity event
+
+### Inbox Linking Workflow
+1. Go to `/clients` and click the "Inbox" tab
+2. Filter by source (All, Quo, Gmail)
+3. For each unmatched contact:
+   - Click "Link" to search and select an existing client
+   - Click "Create" to create a new client with the contact pre-filled
+   - Click "Ignore" to dismiss
+4. Linked identities become client_contacts and can be used for future matching

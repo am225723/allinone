@@ -5,9 +5,8 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { href: '/', icon: 'dashboard', label: 'Home', color: 'blue' },
+  { href: '/clients', icon: 'people', label: 'Clients', color: 'amber' },
   { href: '/patients', icon: 'clinical_notes', label: 'Patients', color: 'emerald' },
-  { href: '/noteai', icon: 'edit_note', label: 'Note AI', color: 'cyan' },
-  { href: '/tasks', icon: 'task_alt', label: 'Tasks', color: 'violet' },
   { href: '/openphone', icon: 'sms', label: 'Quo', color: 'orange' },
   { href: '/gmail', icon: 'mail', label: 'Mail', color: 'red' },
 ];
@@ -19,6 +18,7 @@ const colorClasses: Record<string, { active: string; inactive: string }> = {
   violet: { active: 'text-violet-400', inactive: 'text-violet-400/40' },
   orange: { active: 'text-orange-400', inactive: 'text-orange-400/40' },
   red: { active: 'text-red-400', inactive: 'text-red-400/40' },
+  amber: { active: 'text-amber-400', inactive: 'text-amber-400/40' },
 };
 
 export default function BottomNav() {

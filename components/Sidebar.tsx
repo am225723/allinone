@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 
 const navItems = [
   { href: '/', icon: 'grid_view', label: 'Dashboard', color: 'blue' },
+  { href: '/clients', icon: 'people', label: 'Clients', color: 'amber' },
   { href: '/patients', icon: 'clinical_notes', label: 'Patients', color: 'emerald' },
   { href: '/openphone', icon: 'sms', label: 'Quo', color: 'orange' },
   { href: '/gmail', icon: 'mail', label: 'Mail', color: 'red' },

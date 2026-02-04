@@ -44,7 +44,23 @@ type FunctionName =
   | 'push-register'
   | 'push-send'
   | 'cron-daily-summary'
-  | 'cron-openphone-cleanup';
+  | 'cron-openphone-cleanup'
+  | 'clients-list'
+  | 'clients-create'
+  | 'clients-get'
+  | 'clients-update'
+  | 'clients-status'
+  | 'contacts-add'
+  | 'contacts-update'
+  | 'contacts-delete'
+  | 'inbox-list'
+  | 'inbox-link'
+  | 'inbox-create-client'
+  | 'inbox-ignore'
+  | 'integrations-quo-inbound'
+  | 'integrations-gmail-inbound'
+  | 'clients-import'
+  | 'clients-export';
 
 interface InvokeOptions {
   body?: Record<string, any>;
@@ -142,6 +158,22 @@ function functionNameToApiPath(functionName: FunctionName): string {
     'push-send': '/api/push/send',
     'cron-daily-summary': '/api/cron/daily-summary',
     'cron-openphone-cleanup': '/api/cron/openphone-cleanup',
+    'clients-list': '/api/clients',
+    'clients-create': '/api/clients',
+    'clients-get': '/api/clients',
+    'clients-update': '/api/clients',
+    'clients-status': '/api/clients/status',
+    'contacts-add': '/api/clients/contacts',
+    'contacts-update': '/api/clients/contacts',
+    'contacts-delete': '/api/clients/contacts',
+    'inbox-list': '/api/clients/inbox',
+    'inbox-link': '/api/clients/inbox/link',
+    'inbox-create-client': '/api/clients/inbox/create',
+    'inbox-ignore': '/api/clients/inbox/ignore',
+    'integrations-quo-inbound': '/api/integrations/quo/inbound',
+    'integrations-gmail-inbound': '/api/integrations/gmail/inbound',
+    'clients-import': '/api/clients/import',
+    'clients-export': '/api/clients/export',
   };
 
   return mappings[functionName] || `/api/${functionName.replace(/-/g, '/')}`;
