@@ -12,11 +12,19 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const isAuth = document.cookie.includes('pin_authenticated=true');
-    if (isAuth) {
-      router.push('/');
-    }
-    inputRefs.current[0]?.focus();
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/check-role');
+        const data = await res.json();
+        if (data.ok) {
+          router.push('/');
+        }
+      } catch (e) {
+        // Not authenticated, stay on login page
+      }
+      inputRefs.current[0]?.focus();
+    };
+    checkAuth();
   }, [router]);
 
   const handleChange = (index: number, value: string) => {
