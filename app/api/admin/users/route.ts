@@ -40,8 +40,9 @@ export async function POST(request: Request) {
       .insert({
         name,
         email: email || null,
-        pin_code: pin,
+        pin,
         role: role || 'user',
+        is_active: true,
         created_at: new Date().toISOString()
       })
       .select()
