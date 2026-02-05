@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import BackButton from '@/components/BackButton';
+import BiometricSettings from '@/components/BiometricSettings';
 
 export default function SecuritySettingsPage() {
   const [currentPin, setCurrentPin] = useState('');
@@ -56,6 +57,8 @@ export default function SecuritySettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-6">
+        <BiometricSettings />
+
         <div className="card p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined">pin</span>

@@ -18,7 +18,7 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Dashboard Layout:** A 2x2 grid of stat cards displaying key metrics (e.g., Appointments Today, Tasks Today, Emails/Messages/Calls), a dedicated task section, and unified feeds for Quo and Gmail.
 - **Clinical Dashboard:** A specialized `/patients` page adopting a Clinical Dashboard layout with stat cards (Appointments, Pending Notes, Weekly, Revenue), a daily agenda timeline with color-coded appointment blocks (blue for telehealth, red for intake), and an appointment details panel.
 - **Clinical Note Generator (`/noteai`):** A 3-column layout integrating template selection, file upload with transcription tracking, generation settings (tone, detail, section toggles), and a "Clinical Copilot" panel for pre-flight checks, follow-up questions, session snapshots, completeness tracking, and risk assessment. It also includes diagnosis suggestions with ICD-10 codes and confidence levels, and a letterhead matching an official template.
-- **Authentication:** Animated `/login` page with PIN-based authentication.
+- **Authentication:** Animated `/login` page with PIN-based authentication and WebAuthn biometric login (Face ID, Touch ID, Windows Hello).
 - **PWA Support:** Enhanced Progressive Web App features for Apple/iOS devices, including offline support, install to home screen, and push notifications.
 
 ### Technical Implementations
@@ -26,7 +26,7 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Styling:** Tailwind CSS for a utility-first approach to styling.
 - **Backend:** Primarily Supabase Edge Functions (Deno) for API operations, with Next.js API routes as a fallback.
 - **State Management:** React Context API or similar for global state.
-- **Authentication:** Custom PIN-based authentication system with user management features.
+- **Authentication:** Custom PIN-based authentication with WebAuthn biometric support (Face ID, Touch ID, Windows Hello). Challenges stored in database for serverless compatibility.
 - **Cron Jobs:** Vercel Cron jobs for scheduled tasks like daily cleanups, Gmail triage, and summary generation.
 - **Push Notifications:** OneSignal integration for urgent alerts, draft notifications, and daily summaries.
 - **Data Export:** Supports CSV, JSON, and HTML formats for various data types (summaries, drafts, emails, activity, daily_summary).
@@ -46,7 +46,7 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Edge Computing:** Extensive use of Vercel Edge Functions and Supabase Edge Functions for performance and scalability, ensuring API routes are fast and globally distributed.
 - **Serverless Architecture:** Leveraging Supabase for database and authentication, combined with Vercel for frontend deployment and cron jobs, minimizes operational overhead.
 - **Modular Design:** Clear separation of concerns with `app/`, `components/`, `lib/`, and `supabase/` directories for maintainability and scalability.
-- **Database Schema:** Structured PostgreSQL database via Supabase, with tables for tracking runs, summaries, drafts, notifications, email logs, accounts, agent rules, suppressions, tasks, push devices, message templates, daily summaries, app settings, users, clinical notes, clients, client_contacts, inbound_identity_events, and client_import_jobs.
+- **Database Schema:** Structured PostgreSQL database via Supabase, with tables for tracking runs, summaries, drafts, notifications, email logs, accounts, agent rules, suppressions, tasks, push devices, message templates, daily summaries, app settings, users, clinical notes, clients, client_contacts, inbound_identity_events, client_import_jobs, webauthn_credentials, and webauthn_challenges.
 - **Security:** Environment variables for sensitive keys, admin password protection, and `CRON_SECRET` for cron job authentication.
 
 ## External Dependencies
@@ -62,6 +62,8 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Deployment:** Vercel (for hosting, Edge Functions, and Cron Jobs)
 
 ## Recent Changes
+- 2026-02-05: Added WebAuthn biometric authentication (Face ID, Touch ID, Windows Hello) with database-backed challenge storage
+- 2026-02-05: Created BiometricEnrollment prompt after PIN login and BiometricSettings component in Security settings
 - 2026-02-05: Added Light Mode support with theme toggle in sidebar, CSS variables for both themes, localStorage persistence
 - 2026-02-05: Fixed Perplexity API error by removing unsupported response_format parameter
 - 2026-02-05: Fixed PinGuard auth check to use API instead of httpOnly cookie reading

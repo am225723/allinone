@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import QuickTaskModal from '@/components/QuickTaskModal';
+import BiometricEnrollment from '@/components/BiometricEnrollment';
 
 interface Task {
   id: string;
@@ -315,6 +316,7 @@ export default function DashboardHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0f18] via-[#0d1420] to-[#0f1a2e]">
+      <BiometricEnrollment />
       <QuickTaskModal 
         isOpen={showTaskModal} 
         onClose={() => setShowTaskModal(false)}

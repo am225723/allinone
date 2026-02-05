@@ -1,15 +1,69 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 
 export default function LoginPage() {
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+
+  const handleBiometricLogin = useCallback(async () => {
+    if (!browserSupportsWebAuthn()) {
+      setError('Biometric login not supported on this device');
+      return;
+    }
+
+    setBiometricLoading(true);
+    setError('');
+
+    try {
+      const optionsRes = await fetch('/api/auth/webauthn/authenticate');
+      const options = await optionsRes.json();
+
+      if (!options.available) {
+        setError('No biometric credentials registered');
+        setBiometricLoading(false);
+        return;
+      }
+
+      const { sessionId, available, ...optionsJSON } = options;
+      const credential = await startAuthentication({ optionsJSON });
+
+      const verifyRes = await fetch('/api/auth/webauthn/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: credential, sessionId }),
+      });
+
+      const result = await verifyRes.json();
+
+      if (result.success) {
+        router.push('/');
+        router.refresh();
+      } else {
+        setError(result.error || 'Biometric verification failed');
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        setError('Biometric authentication cancelled');
+      } else {
+        setError('Biometric authentication failed');
+      }
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    } finally {
+      setBiometricLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -18,10 +72,22 @@ export default function LoginPage() {
         const data = await res.json();
         if (data.ok) {
           router.push('/');
+          return;
         }
-      } catch (e) {
+      } catch {
         // Not authenticated, stay on login page
       }
+
+      if (browserSupportsWebAuthn()) {
+        try {
+          const res = await fetch('/api/auth/webauthn/authenticate?checkOnly=true');
+          const data = await res.json();
+          setBiometricAvailable(data.available);
+        } catch {
+          setBiometricAvailable(false);
+        }
+      }
+
       inputRefs.current[0]?.focus();
     };
     checkAuth();
@@ -172,7 +238,7 @@ export default function LoginPage() {
 
           <button
             onClick={() => handleSubmit()}
-            disabled={loading || pin.some(d => d === '')}
+            disabled={loading || biometricLoading || pin.some(d => d === '')}
             className="unlock-btn"
           >
             {loading ? (
@@ -187,6 +253,32 @@ export default function LoginPage() {
               </>
             )}
           </button>
+
+          {biometricAvailable && (
+            <>
+              <div className="divider">
+                <span>or</span>
+              </div>
+
+              <button
+                onClick={handleBiometricLogin}
+                disabled={loading || biometricLoading}
+                className="biometric-btn"
+              >
+                {biometricLoading ? (
+                  <span className="btn-loading">
+                    <span className="material-symbols-outlined spin">progress_activity</span>
+                    Authenticating...
+                  </span>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">fingerprint</span>
+                    Use Face ID / Fingerprint
+                  </>
+                )}
+              </button>
+            </>
+          )}
 
           <div className="login-footer">
             <div className="security-badge">
@@ -519,6 +611,59 @@ export default function LoginPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        .divider {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin: 20px 0;
+          color: #666;
+          font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .biometric-btn {
+          width: 100%;
+          padding: 14px 24px;
+          font-size: 15px;
+          font-weight: 500;
+          color: #e63b19;
+          background: rgba(230, 59, 25, 0.1);
+          border: 1px solid rgba(230, 59, 25, 0.3);
+          border-radius: 14px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.3s ease;
+        }
+
+        .biometric-btn:hover:not(:disabled) {
+          background: rgba(230, 59, 25, 0.15);
+          border-color: rgba(230, 59, 25, 0.5);
+          transform: translateY(-1px);
+        }
+
+        .biometric-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .biometric-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .biometric-btn .material-symbols-outlined {
+          font-size: 22px;
         }
 
         .login-footer {
