@@ -51,11 +51,14 @@ export default function Sidebar() {
     }
   }
 
-  const handleLogout = () => {
-    document.cookie = 'pin_authenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'user_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/pin', { method: 'DELETE' });
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
     router.push('/login');
+    router.refresh();
   };
 
   const isActive = (href: string) => {
