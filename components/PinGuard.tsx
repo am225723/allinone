@@ -19,13 +19,24 @@ export default function PinGuard({ children }: PinGuardProps) {
       return;
     }
 
-    // Check cookie
-    const isAuth = document.cookie.includes('pin_authenticated=true');
-    setIsAuthenticated(isAuth);
+    // Check auth via API (httpOnly cookies can't be read by JavaScript)
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/check-role');
+        const data = await res.json();
+        if (data.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          router.push('/login');
+        }
+      } catch (e) {
+        setIsAuthenticated(false);
+        router.push('/login');
+      }
+    };
 
-    if (!isAuth) {
-      router.push('/login');
-    }
+    checkAuth();
   }, [pathname, router]);
 
   // Show loading while checking auth
