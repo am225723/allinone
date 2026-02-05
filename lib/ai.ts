@@ -48,7 +48,6 @@ async function callPerplexityAPI(
     temperature?: number;
     maxTokens?: number;
     disableSearch?: boolean;
-    responseFormat?: { type: 'json_object' };
   } = {}
 ): Promise<string> {
   const apiKey = PERPLEXITY_API_KEY;
@@ -61,7 +60,6 @@ async function callPerplexityAPI(
     temperature = 0.3,
     maxTokens = 2000,
     disableSearch = false,
-    responseFormat,
   } = options;
 
   try {
@@ -77,7 +75,6 @@ async function callPerplexityAPI(
         temperature,
         max_tokens: maxTokens,
         disable_search: disableSearch,
-        ...(responseFormat && { response_format: responseFormat }),
       }),
     });
 
@@ -164,7 +161,6 @@ ${body.slice(0, 3000)}`;
       {
         temperature: 0.3,
         disableSearch: true, // No need for web search for email analysis
-        responseFormat: { type: 'json_object' },
       }
     );
 
@@ -213,7 +209,6 @@ Respond in JSON format:
       {
         temperature: 0.3,
         disableSearch: true,
-        responseFormat: { type: 'json_object' },
       }
     );
 
@@ -378,7 +373,6 @@ Respond in JSON format:
       {
         temperature: 0.2,
         disableSearch: true,
-        responseFormat: { type: 'json_object' },
       }
     );
 
@@ -429,7 +423,6 @@ Respond in JSON format:
       {
         temperature: 0.3,
         disableSearch: true,
-        responseFormat: { type: 'json_object' },
       }
     );
 
