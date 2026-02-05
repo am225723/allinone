@@ -10,6 +10,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.2",
     "@supabase/supabase-js": "^2.49.1",
     "@types/papaparse": "^5.5.2",
     "googleapis": "^134.0.0",
