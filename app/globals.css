@@ -10,8 +10,27 @@
    Modern dark theme with glassmorphism
    ============================================ */
 
-/* CSS Variables */
+/* CSS Variables - Light Mode (Default) */
 :root {
+  --bg: #f8fafc;
+  --bg-darker: #f1f5f9;
+  --surface: #ffffff;
+  --surface-highlight: #f8fafc;
+  --text: #0f172a;
+  --text-muted: rgba(15, 23, 42, 0.6);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.12);
+  --primary: #e63b19;
+  --primary-dark: #b92b0e;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-blue: #3b82f6;
+  --danger: #ef4444;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* CSS Variables - Dark Mode */
+.dark {
   --bg: #18181b;
   --bg-darker: #121214;
   --surface: #27272a;
@@ -50,9 +69,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* App Shell with gradient background */
+/* App Shell with gradient background - Light Mode */
 .app-shell {
   min-height: 100vh;
+  background: 
+    radial-gradient(1200px 700px at 20% 10%, rgba(230, 59, 25, 0.05), transparent 60%),
+    radial-gradient(900px 600px at 80% 20%, rgba(16, 185, 129, 0.04), transparent 55%),
+    radial-gradient(800px 700px at 50% 90%, rgba(59, 130, 246, 0.03), transparent 60%),
+    var(--bg);
+}
+
+/* App Shell with gradient background - Dark Mode */
+.dark .app-shell {
   background: 
     radial-gradient(1200px 700px at 20% 10%, rgba(230, 59, 25, 0.12), transparent 60%),
     radial-gradient(900px 600px at 80% 20%, rgba(16, 185, 129, 0.08), transparent 55%),
@@ -60,17 +88,25 @@ body {
     var(--bg);
 }
 
-/* Grid overlay effect */
+/* Grid overlay effect - Light Mode */
 .app-shell::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
+  opacity: 0.03;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Grid overlay effect - Dark Mode */
+.dark .app-shell::before {
   opacity: 0.08;
   background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 60px 60px;
 }
 
 /* Links */
@@ -89,7 +125,7 @@ a:hover {
   color: white;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Light Mode */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -100,11 +136,20 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom Scrollbar - Dark Mode */
+.dark ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
 
@@ -123,19 +168,27 @@ a:hover {
    ============================================ */
 
 .glass-panel {
-  background: rgba(38, 38, 39, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
 }
 
+.dark .glass-panel {
+  background: rgba(38, 38, 39, 0.7);
+}
+
 .glass-card {
-  background: rgba(39, 39, 42, 0.8);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: var(--shadow);
+}
+
+.dark .glass-card {
+  background: rgba(39, 39, 42, 0.8);
 }
 
 /* ============================================
@@ -154,8 +207,12 @@ a:hover {
   z-index: 50;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  background: rgba(24, 24, 27, 0.85);
+  background: rgba(248, 250, 252, 0.85);
   border-bottom: 1px solid var(--border);
+}
+
+.dark .topbar {
+  background: rgba(24, 24, 27, 0.85);
 }
 
 .topbar-inner {
@@ -426,12 +483,18 @@ a:hover {
 .textarea {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.8);
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
   font-size: 14px;
   transition: all 0.15s ease;
+}
+
+.dark .input,
+.dark .select,
+.dark .textarea {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .input:focus,
@@ -443,6 +506,10 @@ a:hover {
 }
 
 .input::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.dark .input::placeholder {
   color: rgba(255, 255, 255, 0.35);
 }
 
@@ -530,12 +597,16 @@ a:hover {
 }
 
 .table th {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.03);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+}
+
+.dark .table th {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .table tr:last-child td {
@@ -585,9 +656,13 @@ a:hover {
   display: flex;
   gap: 8px;
   padding: 4px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 12px;
   margin-bottom: 24px;
+}
+
+.dark .channel-tabs {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .channel-tab {

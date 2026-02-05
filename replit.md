@@ -62,6 +62,9 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - **Deployment:** Vercel (for hosting, Edge Functions, and Cron Jobs)
 
 ## Recent Changes
+- 2026-02-05: Added Light Mode support with theme toggle in sidebar, CSS variables for both themes, localStorage persistence
+- 2026-02-05: Fixed Perplexity API error by removing unsupported response_format parameter
+- 2026-02-05: Fixed PinGuard auth check to use API instead of httpOnly cookie reading
 - 2026-02-04: Security fix - Removed service role key exposure from browser code, migrated to Next.js API routes
 - 2026-02-04: Created 11 Next.js API routes for client operations (app/api/clients/, app/api/clients/inbox/, app/api/integrations/)
 - 2026-02-04: Updated lib/supabase-functions.ts with new function-to-route mappings

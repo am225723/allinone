@@ -13,14 +13,14 @@ const navItems = [
 ];
 
 const colorClasses: Record<string, { active: string; inactive: string }> = {
-  blue: { active: 'text-blue-400', inactive: 'text-blue-400/40' },
-  emerald: { active: 'text-emerald-400', inactive: 'text-emerald-400/40' },
-  cyan: { active: 'text-cyan-400', inactive: 'text-cyan-400/40' },
-  violet: { active: 'text-violet-400', inactive: 'text-violet-400/40' },
-  orange: { active: 'text-orange-400', inactive: 'text-orange-400/40' },
-  red: { active: 'text-red-400', inactive: 'text-red-400/40' },
-  amber: { active: 'text-amber-400', inactive: 'text-amber-400/40' },
-  gray: { active: 'text-gray-400', inactive: 'text-gray-400/40' },
+  blue: { active: 'text-blue-600 dark:text-blue-400', inactive: 'text-blue-600/40 dark:text-blue-400/40' },
+  emerald: { active: 'text-emerald-600 dark:text-emerald-400', inactive: 'text-emerald-600/40 dark:text-emerald-400/40' },
+  cyan: { active: 'text-cyan-600 dark:text-cyan-400', inactive: 'text-cyan-600/40 dark:text-cyan-400/40' },
+  violet: { active: 'text-violet-600 dark:text-violet-400', inactive: 'text-violet-600/40 dark:text-violet-400/40' },
+  orange: { active: 'text-orange-600 dark:text-orange-400', inactive: 'text-orange-600/40 dark:text-orange-400/40' },
+  red: { active: 'text-red-600 dark:text-red-400', inactive: 'text-red-600/40 dark:text-red-400/40' },
+  amber: { active: 'text-amber-600 dark:text-amber-400', inactive: 'text-amber-600/40 dark:text-amber-400/40' },
+  gray: { active: 'text-gray-600 dark:text-gray-400', inactive: 'text-gray-600/40 dark:text-gray-400/40' },
 };
 
 export default function BottomNav() {
@@ -70,7 +70,7 @@ export default function BottomNav() {
       )}
 
       {showMore && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-[#0d1117] border-t border-white/10 lg:hidden safe-area-bottom">
+        <div className="fixed bottom-16 left-0 right-0 z-50 bg-white dark:bg-[#0d1117] border-t border-gray-200 dark:border-white/10 lg:hidden safe-area-bottom">
           <div className="flex flex-col p-2 gap-1">
             <Link
               href="/settings"
@@ -134,7 +134,7 @@ export default function BottomNav() {
                 setShowMore(false);
                 handleLogout();
               }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/60 hover:text-red-400 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-600/60 dark:text-red-400/60 hover:text-red-600 dark:hover:text-red-400 transition-colors"
             >
               <span className="material-symbols-outlined text-xl">logout</span>
               <span className="text-sm font-medium">Logout</span>
@@ -143,7 +143,7 @@ export default function BottomNav() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-lg border-t border-white/10 lg:hidden safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#0d1117]/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/10 lg:hidden safe-area-bottom">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => {
             const colors = colorClasses[item.color];
@@ -164,7 +164,7 @@ export default function BottomNav() {
           <button
             onClick={() => setShowMore(!showMore)}
             className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              showMore ? 'text-violet-400' : 'text-gray-400/60'
+              showMore ? 'text-violet-600 dark:text-violet-400' : 'text-gray-600/60 dark:text-gray-400/60'
             }`}
           >
             <span className="material-symbols-outlined text-xl">
