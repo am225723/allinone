@@ -16,6 +16,7 @@ const navItems = [
 
 const bottomItems = [
   { href: '/settings', icon: 'settings', label: 'Settings', color: 'gray' },
+  { href: '/help', icon: 'help', label: 'Help', color: 'cyan' },
 ];
 
 const colorClasses: Record<string, { active: string; inactive: string; hover: string }> = {
