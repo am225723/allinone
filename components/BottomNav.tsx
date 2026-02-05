@@ -70,7 +70,7 @@ export default function BottomNav() {
       )}
 
       {showMore && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-white dark:bg-[#0d1117] border-t border-gray-200 dark:border-white/10 lg:hidden safe-area-bottom">
+        <div className="fixed bottom-16 left-0 right-0 z-50 bg-[#fdfcfb] dark:bg-[#0d1117] border-t border-stone-200 dark:border-white/10 lg:hidden safe-area-bottom">
           <div className="flex flex-col p-2 gap-1">
             <Link
               href="/settings"
@@ -143,7 +143,7 @@ export default function BottomNav() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#0d1117]/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/10 lg:hidden safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#fdfcfb]/95 dark:bg-[#0d1117]/95 backdrop-blur-lg border-t border-stone-200 dark:border-white/10 lg:hidden safe-area-bottom shadow-[0_-2px_10px_rgba(0,0,0,0.04)] dark:shadow-none">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => {
             const colors = colorClasses[item.color];

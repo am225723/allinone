@@ -87,16 +87,16 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex flex-col w-16 hover:w-52 h-screen bg-white dark:bg-[#0d1117] border-r border-gray-200 dark:border-white/5 fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out group overflow-hidden">
+    <aside className="hidden lg:flex flex-col w-16 hover:w-52 h-screen bg-[#fdfcfb] dark:bg-[#0d1117] border-r border-stone-200 dark:border-white/5 fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out group overflow-hidden shadow-sm dark:shadow-none">
       {/* Logo */}
-      <div className="p-3 flex items-center gap-3 border-b border-gray-200 dark:border-white/5 min-h-[64px]">
+      <div className="p-3 flex items-center gap-3 border-b border-stone-200 dark:border-white/5 min-h-[64px]">
         <Link href="/" className="flex items-center gap-3">
           <img 
             src="/icons/icon-192x192.png" 
             alt="Command Center" 
             className="w-10 h-10 rounded-xl flex-shrink-0"
           />
-          <span className="font-bold text-gray-900 dark:text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="font-bold text-stone-800 dark:text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             Command Center
           </span>
         </Link>
@@ -120,7 +120,7 @@ export default function Sidebar() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="py-4 flex flex-col gap-2 px-2 border-t border-gray-200 dark:border-white/5">
+      <div className="py-4 flex flex-col gap-2 px-2 border-t border-stone-200 dark:border-white/5">
         {bottomItems.map((item) => (
           <Link
             key={item.href}
