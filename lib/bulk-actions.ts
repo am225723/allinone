@@ -4,6 +4,7 @@
  */
 
 import { supabaseServer as supabase } from './supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface BulkActionResult {
   success: number;
@@ -129,7 +130,8 @@ export async function bulkMarkEmailsProcessed(emailIds: string[]): Promise<BulkA
 export async function bulkUpdatePriority(
   ids: string[],
   type: 'email' | 'draft',
-  priority: 'high' | 'normal' | 'low'
+  priority: 'high' | 'normal' | 'low',
+  client: SupabaseClient = supabase
 ): Promise<BulkActionResult> {
   const result: BulkActionResult = {
     success: 0,
@@ -139,19 +141,21 @@ export async function bulkUpdatePriority(
 
   const table = type === 'email' ? 'email_logs' : 'draft_replies';
 
-  for (const id of ids) {
-    try {
-      const { error } = await supabase
-        .from(table)
-        .update({ priority })
-        .eq('id', id);
+  if (ids.length === 0) {
+    return result;
+  }
 
-      if (error) throw error;
-      result.success++;
-    } catch (error: any) {
-      result.failed++;
-      result.errors.push(`Failed to update priority for ${id}: ${error.message}`);
-    }
+  try {
+    const { error } = await client
+      .from(table)
+      .update({ priority })
+      .in('id', ids);
+
+    if (error) throw error;
+    result.success = ids.length;
+  } catch (error: any) {
+    result.failed = ids.length;
+    result.errors.push(`Failed to update priority for ${ids.length} items: ${error.message}`);
   }
 
   return result;
