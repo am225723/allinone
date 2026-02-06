@@ -205,22 +205,21 @@ export default function BiometricSettings() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[var(--surface)] flex items-center justify-center">
                   <span className="material-symbols-outlined text-[var(--text-muted)]">
-                    {cred.device_name.includes('iPhone') || cred.device_name.includes('iPad')
+                    {(cred.device_type || '').includes('iPhone') || (cred.device_type || '').includes('iPad')
                       ? 'phone_iphone'
-                      : cred.device_name.includes('Mac')
+                      : (cred.device_type || '').includes('Mac')
                       ? 'laptop_mac'
-                      : cred.device_name.includes('Windows')
+                      : (cred.device_type || '').includes('Windows')
                       ? 'computer'
-                      : cred.device_name.includes('Android')
+                      : (cred.device_type || '').includes('Android')
                       ? 'phone_android'
                       : 'devices'}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-[var(--text)]">{cred.device_name}</p>
+                  <p className="font-medium text-[var(--text)]">{cred.device_type || 'Unknown Device'}</p>
                   <p className="text-xs text-[var(--text-muted)]">
                     Added {formatDate(cred.created_at)}
-                    {cred.last_used_at && ` • Last used ${formatDate(cred.last_used_at)}`}
                   </p>
                 </div>
               </div>
