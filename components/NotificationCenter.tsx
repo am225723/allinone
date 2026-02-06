@@ -29,6 +29,18 @@ export default function NotificationCenter() {
     return () => clearInterval(interval);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   async function loadNotifications() {
     setLoading(true);
     try {
@@ -145,6 +157,9 @@ export default function NotificationCenter() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-gray-800 rounded-lg transition-colors"
+        aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
         <span className="material-symbols-outlined">notifications</span>
         {unreadCount > 0 && (
@@ -164,7 +179,12 @@ export default function NotificationCenter() {
           />
 
           {/* Panel */}
-          <div className="absolute right-0 top-full mt-2 w-96 max-h-[600px] bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div
+            className="absolute right-0 top-full mt-2 w-96 max-h-[600px] bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Notifications"
+          >
             {/* Header */}
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h3 className="font-semibold flex items-center gap-2">
@@ -180,6 +200,7 @@ export default function NotificationCenter() {
                 <button
                   onClick={markAllAsRead}
                   className="text-sm text-blue-400 hover:text-blue-300"
+                  aria-label="Mark all notifications as read"
                 >
                   Mark all read
                 </button>
@@ -231,6 +252,7 @@ export default function NotificationCenter() {
                                 <button
                                   onClick={() => markAsRead(notification.id)}
                                   className="text-xs text-blue-400 hover:text-blue-300"
+                                  aria-label={`Mark notification "${notification.title}" as read`}
                                 >
                                   Mark read
                                 </button>
@@ -238,6 +260,7 @@ export default function NotificationCenter() {
                               <button
                                 onClick={() => deleteNotification(notification.id)}
                                 className="text-xs text-red-400 hover:text-red-300"
+                                aria-label={`Delete notification "${notification.title}"`}
                               >
                                 Delete
                               </button>
