@@ -4,17 +4,16 @@ import { useState, useEffect } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 
 interface Credential {
-  id: number;
-  device_name: string;
+  id: string;
+  device_type: string;
   created_at: string;
-  last_used_at: string | null;
 }
 
 export default function BiometricSettings() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [supported, setSupported] = useState(false);
@@ -84,7 +83,7 @@ export default function BiometricSettings() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Remove this device? You won\'t be able to use biometrics from it anymore.')) {
       return;
     }
