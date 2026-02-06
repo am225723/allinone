@@ -15,8 +15,6 @@ const RP_NAME = 'Command Center';
 
 function getRpId(): string {
   if (process.env.WEBAUTHN_RP_ID) return process.env.WEBAUTHN_RP_ID;
-  if (process.env.REPLIT_DEV_DOMAIN) return process.env.REPLIT_DEV_DOMAIN;
-  if (process.env.REPLIT_DOMAINS) return process.env.REPLIT_DOMAINS.split(',')[0];
   return 'localhost';
 }
 

@@ -42,3 +42,5 @@ build = ["npm", "run", "build"]
 
 [userenv.shared]
 SUPABASE_URL = " https://hqlqtnjnyhafdnfetjac.supabase.co"
+WEBAUTHN_RP_ID = "drz.services"
+NEXT_PUBLIC_APP_URL = "https://agent.drz.services"
