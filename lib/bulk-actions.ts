@@ -208,26 +208,24 @@ export async function bulkAddTags(
 /**
  * Bulk archive conversations
  */
-export async function bulkArchiveConversations(conversationIds: string[]): Promise<BulkActionResult> {
+export async function bulkArchiveConversations(conversationIds: string[], client = supabase): Promise<BulkActionResult> {
   const result: BulkActionResult = {
     success: 0,
     failed: 0,
     errors: [],
   };
 
-  for (const conversationId of conversationIds) {
-    try {
-      const { error } = await supabase
-        .from('summaries')
-        .update({ archived: true, archived_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId);
+  try {
+    const { error } = await client
+      .from('summaries')
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .in('conversation_id', conversationIds);
 
-      if (error) throw error;
-      result.success++;
-    } catch (error: any) {
-      result.failed++;
-      result.errors.push(`Failed to archive conversation ${conversationId}: ${error.message}`);
-    }
+    if (error) throw error;
+    result.success += conversationIds.length;
+  } catch (error: any) {
+    result.failed += conversationIds.length;
+    result.errors.push(`Failed to archive conversations: ${error.message}`);
   }
 
   return result;
