@@ -1,0 +1,38 @@
+layout-720eee42ec88a283.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 Service Worker registered with scope: https://agent.drz.services/
+sw.js:15 Opened cache
+sw.ts:20 Event handler of 'message' event must be added on the initial evaluation of worker script.
+F @ sw.ts:20
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+/api/auth/webauthn/credentials:1  Failed to load resource: the server responded with a status of 500 ()
+/api/auth/webauthn/credentials:1  Failed to load resource: the server responded with a status of 500 ()
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+/api/auth/webauthn/register:1  Failed to load resource: the server responded with a status of 500 ()
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+sw.js:35 Fetch finished loading: GET "https://agent.drz.services/api/notifications?type=count".
+(anonymous) @ sw.js:35
+layout-720eee42ec88a283.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 Fetch finished loading: GET "https://agent.drz.services/api/notifications?type=count".
+x @ layout-720eee42ec88a283.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+(anonymous) @ layout-720eee42ec88a283.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToDeactivateSession @ SessionManager.ts:78
+handleVisibilityChange @ SessionManager.ts:160
+117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-86a3039c9d8de646.js?dpl=dpl_HWRXeqYN5J8xRKfzu5UMoSL6C42B:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToDeactivateSession @ SessionManager.ts:78
+handleVisibilityChange @ SessionManager.ts:160
