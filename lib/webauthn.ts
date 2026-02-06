@@ -12,8 +12,22 @@ import type {
 import { supabaseServer } from './supabase';
 
 const RP_NAME = 'Command Center';
-const RP_ID = process.env.WEBAUTHN_RP_ID || 'localhost';
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL || `https://${RP_ID}`;
+
+function getRpId(): string {
+  if (process.env.WEBAUTHN_RP_ID) return process.env.WEBAUTHN_RP_ID;
+  if (process.env.REPLIT_DEV_DOMAIN) return process.env.REPLIT_DEV_DOMAIN;
+  if (process.env.REPLIT_DOMAINS) return process.env.REPLIT_DOMAINS.split(',')[0];
+  return 'localhost';
+}
+
+function getOrigin(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  const rpId = getRpId();
+  return rpId === 'localhost' ? 'http://localhost:5000' : `https://${rpId}`;
+}
+
+const RP_ID = getRpId();
+const ORIGIN = getOrigin();
 
 interface StoredCredential {
   id: number;
