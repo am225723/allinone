@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import BackButton from '@/components/BackButton';
 import BiometricSettings from '@/components/BiometricSettings';
 
 export default function SecuritySettingsPage() {
+  const router = useRouter();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -42,6 +44,18 @@ export default function SecuritySettingsPage() {
       setMessage({ type: 'error', text: 'An error occurred' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    if (!confirm('Are you sure you want to log out of all devices?')) return;
+
+    try {
+      await fetch('/api/auth/logout-all', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
@@ -142,7 +156,10 @@ export default function SecuritySettingsPage() {
           <p className="text-sm text-muted mb-4">
             These actions are permanent and cannot be undone.
           </p>
-          <button className="btn btn-secondary text-red-400 border-red-500/30">
+          <button
+            onClick={handleLogoutAll}
+            className="btn btn-secondary text-red-400 border-red-500/30 hover:bg-red-500/10"
+          >
             Log Out All Devices
           </button>
         </div>

@@ -65,6 +65,15 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
+    if (data.role === 'admin') {
+      response.cookies.set('admin_authenticated', 'true', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/',
+      });
+    }
     response.cookies.set('user_id', data.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -91,6 +100,7 @@ export async function DELETE(request: NextRequest) {
   // Logout - clear all auth cookies
   const response = NextResponse.json({ ok: true });
   response.cookies.delete('pin_authenticated');
+  response.cookies.delete('admin_authenticated');
   response.cookies.delete('user_id');
   response.cookies.delete('user_role');
   return response;
