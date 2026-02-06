@@ -1,0 +1,247 @@
+
+> unified-communications-dashboard@1.0.0 dev
+> next dev -H 0.0.0.0 -p 5000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:5000
+  - Network:      http://0.0.0.0:5000
+
+ ✓ Starting...
+ ✓ Ready in 3.9s
+ ○ Compiling / ...
+ ✓ Compiled / in 3.5s (567 modules)
+ GET / 200 in 3939ms
+ ✓ Compiled in 550ms (290 modules)
+ GET / 200 in 34ms
+ ⚠ Blocked cross-origin request from 5f418f48-658f-4d32-a4a2-9520d1d4c220-00-2oi5kufluy5gr.worf.replit.dev to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1464ms (757 modules)
+ GET /openphone 200 in 1761ms
+ GET /gmail 200 in 1752ms
+ GET /admin 200 in 1676ms
+ ✓ Compiled /search in 372ms (664 modules)
+ GET /api/auth/check-role 200 in 2425ms
+ GET /search 200 in 656ms
+ GET /settings 200 in 661ms
+ GET /api/auth/check-role 200 in 462ms
+ ✓ Compiled /api/stats in 485ms (186 modules)
+ ✓ Compiled (193 modules)
+ GET /api/patient-stats 200 in 803ms
+ GET /api/notifications?limit=20 200 in 1371ms
+ GET /api/notifications?type=count 200 in 1376ms
+ ○ Compiling /api/tasks ...
+ GET /api/auth/check-role 200 in 544ms
+ ✓ Compiled /api/tasks in 571ms (409 modules)
+ GET /api/patient-stats 200 in 50ms
+ GET /api/stats 200 in 1691ms
+ GET /api/stats?type=activity&limit=5 200 in 1186ms
+ GET /api/auth/check-role 200 in 227ms
+ GET /api/notifications?type=count 200 in 259ms
+ GET /api/notifications?limit=20 200 in 521ms
+ GET /api/tasks?status=pending,in_progress 200 in 1410ms
+ GET /api/stats?type=activity&limit=5 200 in 349ms
+ GET /api/auth/check-role 200 in 182ms
+ ○ Compiling /api/auth/webauthn/credentials ...
+ GET /api/stats 200 in 657ms
+ GET /api/auth/check-role 200 in 325ms
+ ✓ Compiled /api/auth/webauthn/credentials in 626ms (675 modules)
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 1062ms
+ GET /api/tasks?status=pending,in_progress 200 in 893ms
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 141ms
+ GET /api/patient-stats 200 in 39ms
+ GET /api/tasks?status=pending,in_progress 200 in 249ms
+ GET /api/notifications?type=count 200 in 349ms
+ GET /api/stats?type=activity&limit=5 200 in 550ms
+ GET /api/stats 200 in 633ms
+ ✓ Compiled in 1414ms (1207 modules)
+ GET /api/patient-stats 200 in 141ms
+ GET /api/tasks?status=pending,in_progress 200 in 645ms
+ GET /api/notifications?type=count 200 in 809ms
+ GET /api/stats?type=activity&limit=5 200 in 968ms
+ GET /api/stats 200 in 1115ms
+ GET /api/patient-stats 200 in 64ms
+ GET /api/tasks?status=pending,in_progress 200 in 230ms
+ GET /api/notifications?type=count 200 in 366ms
+ GET /api/stats?type=activity&limit=5 200 in 413ms
+ GET /api/stats 200 in 642ms
+ ✓ Compiled /api/auth/pin in 222ms (193 modules)
+ DELETE /api/auth/pin 200 in 375ms
+ GET /api/patient-stats 200 in 100ms
+ GET /api/tasks?status=pending,in_progress 200 in 552ms
+ GET /api/notifications?type=count 200 in 558ms
+ GET /api/stats?type=activity&limit=5 200 in 823ms
+ ○ Compiling /login ...
+ GET /api/stats 200 in 951ms
+ ✓ Compiled /login in 655ms (675 modules)
+ ✓ Compiled /api/auth/check-role in 67ms (196 modules)
+ GET /api/auth/check-role 401 in 175ms
+ GET /api/auth/check-role 401 in 24ms
+ ✓ Compiled /api/auth/webauthn/authenticate in 253ms (608 modules)
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 541ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 174ms
+ POST /api/auth/pin 200 in 402ms
+ ✓ Compiled / in 94ms (614 modules)
+ GET /api/patient-stats 200 in 61ms
+ GET /api/auth/check-role 200 in 348ms
+ GET /api/notifications?type=count 200 in 388ms
+ GET /api/patient-stats 200 in 34ms
+ GET /api/notifications?limit=20 200 in 580ms
+ GET /api/auth/check-role 200 in 150ms
+ GET /api/tasks?status=pending,in_progress 200 in 228ms
+ GET /api/notifications?type=count 200 in 175ms
+ GET /api/stats 200 in 750ms
+ GET /api/stats?type=activity&limit=5 200 in 325ms
+ GET /api/notifications?limit=20 200 in 157ms
+ GET /api/auth/check-role 200 in 148ms
+ GET /api/tasks?status=pending,in_progress 200 in 186ms
+ ✓ Compiled /api/auth/webauthn/credentials in 128ms (621 modules)
+ GET /api/auth/check-role 200 in 231ms
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 406ms
+ GET /api/stats?type=activity&limit=5 200 in 421ms
+ GET /api/auth/check-role 200 in 139ms
+ GET /api/stats 200 in 594ms
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 149ms
+ ✓ Compiled /settings in 365ms (626 modules)
+ GET /api/auth/check-role 200 in 153ms
+ ○ Compiling /settings/security ...
+ ✓ Compiled /settings/security in 598ms (963 modules)
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 294ms
+ GET /api/auth/check-role 200 in 288ms
+Get credentials error: Error: Failed to fetch credentials: Could not find the table 'public.webauthn_credentials' in the schema cache
+    at getUserCredentials (webpack-internal:///(rsc)/./lib/webauthn.ts:118:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async GET (webpack-internal:///(rsc)/./app/api/auth/webauthn/credentials/route.ts:24:29)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ GET /api/auth/webauthn/credentials 500 in 156ms
+ ✓ Compiled /api/auth/webauthn/register in 149ms (634 modules)
+ GET /api/auth/webauthn/register 200 in 695ms
+ GET /api/notifications?type=count 200 in 305ms
+ GET /api/auth/webauthn/register 200 in 518ms
