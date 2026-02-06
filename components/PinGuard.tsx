@@ -13,9 +13,15 @@ export default function PinGuard({ children }: PinGuardProps) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Skip check for login page
+    // If we are on the login page, we reset the auth state because we shouldn't
+    // assume we are authenticated if we are looking at the login screen.
     if (pathname === '/login') {
-      setIsAuthenticated(true);
+      setIsAuthenticated(null);
+      return;
+    }
+
+    // Optimization: If we are already authenticated, don't re-check on every navigation.
+    if (isAuthenticated === true) {
       return;
     }
 
@@ -37,7 +43,12 @@ export default function PinGuard({ children }: PinGuardProps) {
     };
 
     checkAuth();
-  }, [pathname, router]);
+  }, [pathname, router, isAuthenticated]);
+
+  // If on login page, render children immediately (login form)
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
 
   // Show loading while checking auth
   if (isAuthenticated === null) {
@@ -51,7 +62,7 @@ export default function PinGuard({ children }: PinGuardProps) {
   }
 
   // If not authenticated and not on login page, show nothing (will redirect)
-  if (!isAuthenticated && pathname !== '/login') {
+  if (isAuthenticated === false) {
     return null;
   }
 
