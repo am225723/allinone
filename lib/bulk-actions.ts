@@ -21,19 +21,21 @@ export async function bulkApproveDrafts(draftIds: string[]): Promise<BulkActionR
     errors: [],
   };
 
-  for (const draftId of draftIds) {
-    try {
-      const { error } = await supabase
-        .from('draft_replies')
-        .update({ status: 'approved', approved_at: new Date().toISOString() })
-        .eq('id', draftId);
+  if (draftIds.length === 0) {
+    return result;
+  }
 
-      if (error) throw error;
-      result.success++;
-    } catch (error: any) {
-      result.failed++;
-      result.errors.push(`Failed to approve draft ${draftId}: ${error.message}`);
-    }
+  try {
+    const { error } = await supabase
+      .from('draft_replies')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .in('id', draftIds);
+
+    if (error) throw error;
+    result.success = draftIds.length;
+  } catch (error: any) {
+    result.failed = draftIds.length;
+    result.errors.push(`Failed to approve drafts: ${error.message}`);
   }
 
   return result;
