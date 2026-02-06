@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 
 interface Credential {
-  id: string;
-  device_type: string;
+  id: number;
+  device_name: string;
   created_at: string;
 }
 
@@ -13,7 +13,7 @@ export default function BiometricSettings() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [supported, setSupported] = useState(false);
@@ -83,7 +83,7 @@ export default function BiometricSettings() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Remove this device? You won\'t be able to use biometrics from it anymore.')) {
       return;
     }
@@ -205,19 +205,19 @@ export default function BiometricSettings() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[var(--surface)] flex items-center justify-center">
                   <span className="material-symbols-outlined text-[var(--text-muted)]">
-                    {(cred.device_type || '').includes('iPhone') || (cred.device_type || '').includes('iPad')
+                    {(cred.device_name || '').includes('iPhone') || (cred.device_name || '').includes('iPad')
                       ? 'phone_iphone'
-                      : (cred.device_type || '').includes('Mac')
+                      : (cred.device_name || '').includes('Mac')
                       ? 'laptop_mac'
-                      : (cred.device_type || '').includes('Windows')
+                      : (cred.device_name || '').includes('Windows')
                       ? 'computer'
-                      : (cred.device_type || '').includes('Android')
+                      : (cred.device_name || '').includes('Android')
                       ? 'phone_android'
                       : 'devices'}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-[var(--text)]">{cred.device_type || 'Unknown Device'}</p>
+                  <p className="font-medium text-[var(--text)]">{cred.device_name || 'Unknown Device'}</p>
                   <p className="text-xs text-[var(--text-muted)]">
                     Added {formatDate(cred.created_at)}
                   </p>

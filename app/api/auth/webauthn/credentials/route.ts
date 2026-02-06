@@ -37,7 +37,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing credential ID' }, { status: 400 });
     }
 
-    await deleteCredential(userId, credentialId);
+    await deleteCredential(userId, parseInt(credentialId, 10));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete credential error:', error);

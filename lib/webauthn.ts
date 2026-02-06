@@ -28,22 +28,23 @@ const RP_ID = getRpId();
 const ORIGIN = getOrigin();
 
 interface StoredCredential {
-  id: string;
+  id: number;
   user_id: string;
+  credential_id: string;
   public_key: string;
   counter: number;
-  device_type: string | null;
+  device_name: string | null;
   transports: string[] | null;
 }
 
 export async function getRegistrationOptions(userId: string, userName: string) {
   const { data: existingCredentials } = await supabaseServer
     .from('webauthn_credentials')
-    .select('id')
+    .select('credential_id')
     .eq('user_id', userId);
 
   const excludeCredentials = (existingCredentials || []).map((cred) => ({
-    id: cred.id,
+    id: cred.credential_id,
   }));
 
   const options = await generateRegistrationOptions({
@@ -85,11 +86,11 @@ export async function verifyAndSaveRegistration(
   const { error } = await supabaseServer
     .from('webauthn_credentials')
     .insert({
-      id: Buffer.from(credential.id).toString('base64url'),
       user_id: userId,
+      credential_id: Buffer.from(credential.id).toString('base64url'),
       public_key: Buffer.from(credential.publicKey).toString('base64url'),
       counter: credential.counter,
-      device_type: deviceName || credentialDeviceType || 'Unknown Device',
+      device_name: deviceName || credentialDeviceType || 'Unknown Device',
       transports: response.response.transports || [],
     });
 
@@ -106,11 +107,11 @@ export async function getAuthenticationOptions(userId?: string) {
   if (userId) {
     const { data: credentials } = await supabaseServer
       .from('webauthn_credentials')
-      .select('id, transports')
+      .select('credential_id, transports')
       .eq('user_id', userId);
 
     allowCredentials = (credentials || []).map((cred) => ({
-      id: cred.id,
+      id: cred.credential_id,
       transports: cred.transports as AuthenticatorTransportFuture[] | undefined,
     }));
   }
@@ -133,7 +134,7 @@ export async function verifyAuthentication(
   const { data: credential, error } = await supabaseServer
     .from('webauthn_credentials')
     .select('*')
-    .eq('id', credentialId)
+    .eq('credential_id', credentialId)
     .single();
 
   if (error || !credential) {
@@ -150,7 +151,7 @@ export async function verifyAuthentication(
     expectedOrigin: ORIGIN,
     expectedRPID: RP_ID,
     credential: {
-      id: storedCred.id,
+      id: storedCred.credential_id,
       publicKey: publicKeyBuffer,
       counter: storedCred.counter,
       transports: storedCred.transports as AuthenticatorTransportFuture[] | undefined,
@@ -166,7 +167,7 @@ export async function verifyAuthentication(
     .update({
       counter: verification.authenticationInfo.newCounter,
     })
-    .eq('id', credentialId);
+    .eq('credential_id', credentialId);
 
   return { verified: true, userId: storedCred.user_id };
 }
@@ -174,7 +175,7 @@ export async function verifyAuthentication(
 export async function getUserCredentials(userId: string) {
   const { data, error } = await supabaseServer
     .from('webauthn_credentials')
-    .select('id, device_type, created_at')
+    .select('id, device_name, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -185,7 +186,7 @@ export async function getUserCredentials(userId: string) {
   return data || [];
 }
 
-export async function deleteCredential(userId: string, credentialId: string) {
+export async function deleteCredential(userId: string, credentialId: number) {
   const { error } = await supabaseServer
     .from('webauthn_credentials')
     .delete()
