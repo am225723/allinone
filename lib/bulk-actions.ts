@@ -4,6 +4,7 @@
  */
 
 import { supabaseServer as supabase } from './supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface BulkActionResult {
   success: number;
@@ -98,26 +99,31 @@ export async function bulkDeleteDrafts(draftIds: string[]): Promise<BulkActionRe
 /**
  * Bulk mark emails as processed
  */
-export async function bulkMarkEmailsProcessed(emailIds: string[]): Promise<BulkActionResult> {
+export async function bulkMarkEmailsProcessed(
+  emailIds: string[],
+  client?: SupabaseClient
+): Promise<BulkActionResult> {
+  const sb = client || supabase;
   const result: BulkActionResult = {
     success: 0,
     failed: 0,
     errors: [],
   };
 
-  for (const emailId of emailIds) {
-    try {
-      const { error } = await supabase
-        .from('email_logs')
-        .update({ processed: true, processed_at: new Date().toISOString() })
-        .eq('id', emailId);
+  try {
+    const { error, count } = await sb
+      .from('email_logs')
+      .update(
+        { processed: true, processed_at: new Date().toISOString() },
+        { count: 'exact' }
+      )
+      .in('id', emailIds);
 
-      if (error) throw error;
-      result.success++;
-    } catch (error: any) {
-      result.failed++;
-      result.errors.push(`Failed to mark email ${emailId}: ${error.message}`);
-    }
+    if (error) throw error;
+    result.success = count ?? emailIds.length;
+  } catch (error: any) {
+    result.failed = emailIds.length;
+    result.errors.push(`Failed to mark emails: ${error.message}`);
   }
 
   return result;
