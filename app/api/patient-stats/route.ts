@@ -160,6 +160,37 @@ export async function GET() {
     };
   });
 
+  let missingNotes: any[] = [];
+  try {
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    const pastEvents = events.filter(e => {
+      const start = new Date(e.start);
+      return start >= yesterdayStart && start < todayStart;
+    });
+
+    if (pastEvents.length > 0) {
+      const { data: recentNotes } = await supabaseServer
+        .from('clinical_notes')
+        .select('patient_name, appointment_date')
+        .gte('appointment_date', yesterdayStart.toISOString().split('T')[0])
+        .lte('appointment_date', todayStart.toISOString().split('T')[0]);
+
+      const notedSet = new Set(
+        (recentNotes || []).map(n => n.patient_name?.toLowerCase())
+      );
+
+      missingNotes = pastEvents
+        .filter(e => !notedSet.has(e.summary?.toLowerCase()))
+        .map(e => ({
+          summary: e.summary,
+          date: new Date(e.start).toISOString().split('T')[0],
+          time: new Date(e.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        }));
+    }
+  } catch (e) {
+    // Table may not exist yet
+  }
+
   const payload = {
     notesPending,
     appointmentsThisWeek: weekEvents.length,
@@ -174,6 +205,7 @@ export async function GET() {
       summary: nextAppointment.summary,
       start: nextAppointment.start,
     } : null,
+    missingNotes,
   };
 
   return NextResponse.json({ ok: true, stats: payload });

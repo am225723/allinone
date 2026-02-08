@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+import { supabaseServer } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 
@@ -11,7 +12,6 @@ function requiredEnv(name: string) {
 }
 
 function normalizePrivateKey(k: string) {
-  // Handles keys pasted into env vars with escaped newlines
   return k.replace(/\\n/g, '\n');
 }
 
@@ -29,6 +29,8 @@ export async function POST(req: Request) {
 
     const folderId = (form.get('folderId') as string) || process.env.GOOGLE_DRIVE_FOLDER_ID || undefined;
     const filename = (form.get('filename') as string) || file.name || 'upload';
+    const noteId = form.get('noteId') as string | null;
+    const clientId = form.get('clientId') as string | null;
 
     const auth = new google.auth.JWT({
       email,
@@ -50,8 +52,27 @@ export async function POST(req: Request) {
     const created = await drive.files.create({
       requestBody,
       media,
-      fields: 'id,name,webViewLink,webContentLink',
+      fields: 'id,name,webViewLink,webContentLink,size',
     });
+
+    if (created.data.id) {
+      try {
+        await supabaseServer.from('drive_files').insert({
+          note_id: noteId || null,
+          client_id: clientId || null,
+          drive_file_id: created.data.id,
+          file_name: created.data.name || filename,
+          mime_type: file.type || 'application/octet-stream',
+          web_view_link: created.data.webViewLink || null,
+          web_content_link: created.data.webContentLink || null,
+          folder_id: folderId || null,
+          file_size: buffer.length,
+          last_verified_at: new Date().toISOString(),
+        });
+      } catch (dbErr) {
+        console.error('Failed to track Drive file in database:', dbErr);
+      }
+    }
 
     return NextResponse.json({
       id: created.data.id,

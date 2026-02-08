@@ -52,6 +52,8 @@ interface PatientDashboardStats {
   appointmentsThisWeek: number;
   appointmentsToday: number;
   topIcd10: Array<{ code: string; label: string; count: number }>;
+  nextAppointment?: { time: string; summary: string; start: string } | null;
+  missingNotes?: Array<{ summary: string; date: string; time: string }>;
 }
 
 interface StatCard {
@@ -539,6 +541,33 @@ export default function DashboardHome() {
               </div>
             )}
           </div>
+
+          {patientStats && patientStats.missingNotes && patientStats.missingNotes.length > 0 && (
+            <div className="mb-4 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 backdrop-blur border border-amber-500/20 shadow-lg shadow-amber-500/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <span className="material-symbols-outlined text-amber-400 text-xl">edit_note</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-100">Session Notes Needed</p>
+                  <p className="text-xs text-amber-300/60">{patientStats.missingNotes.length} session(s) from yesterday still need notes</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {patientStats.missingNotes.slice(0, 3).map((note: any, i: number) => (
+                  <Link
+                    key={i}
+                    href="/noteai"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-amber-500/10 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-amber-400/60 text-sm">person</span>
+                    <span className="text-sm text-white">{note.summary}</span>
+                    <span className="text-xs text-amber-300/40 ml-auto">{note.time}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {patientStats?.nextAppointment && (
             <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur border border-purple-500/20 shadow-lg shadow-purple-500/10 flex items-center gap-4">
