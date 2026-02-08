@@ -1,0 +1,88 @@
+layout-720eee42ec88a283.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 Service Worker registered with scope: https://agent.drz.services/
+sw.js:15 Opened cache
+/api/auth/check-role:1  Failed to load resource: the server responded with a status of 401 ()
+/api/auth/check-role:1  Failed to load resource: the server responded with a status of 401 ()
+/api/auth/check-role:1  Failed to load resource: the server responded with a status of 401 ()
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+/api/auth/webauthn/register:1  Failed to load resource: the server responded with a status of 500 ()
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToUpsertSession @ SessionManager.ts:50
+handleOnFocus @ SessionManager.ts:228
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToDeactivateSession @ SessionManager.ts:78
+handleOnBlur @ SessionManager.ts:258
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToUpsertSession @ SessionManager.ts:50
+handleOnFocus @ SessionManager.ts:228
+page-e1698ff96523a712.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1  POST https://agent.drz.services/api/auth/webauthn/register 500 (Internal Server Error)
+j @ page-e1698ff96523a712.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+await in j
+a_ @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+aR @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sF @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sM @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+o4 @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+iV @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sU @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+uR @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+uM @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+page-e1698ff96523a712.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 Fetch failed loading: POST "https://agent.drz.services/api/auth/webauthn/register".
+j @ page-e1698ff96523a712.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+await in j
+a_ @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+aR @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sF @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sM @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+o4 @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+iV @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+sU @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+uR @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+uM @ fd9d1056-1ac2737fcdb1471b.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+window.console.error @ 117-75f9646cc1fe4b09.js?dpl=dpl_2PpJj8FBZzdr98ibfWbWZF2eEdcG:1
+(anonymous) @ Log.ts:34
+directPostMessageToSW @ page.ts:98
+await in directPostMessageToSW
+unicast @ page.ts:84
+notifySWToDeactivateSession @ SessionManager.ts:78
+handleOnBlur @ SessionManager.ts:258
