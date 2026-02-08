@@ -32,6 +32,10 @@ export default function RunPage() {
       }
       
       setResult(json);
+
+      setTimeout(() => {
+        window.location.href = `/openphone/summaries${json.runId ? `?runId=${json.runId}` : ''}`;
+      }, 2000);
     } catch (e: any) {
       setError(e?.message || 'An error occurred');
     } finally {

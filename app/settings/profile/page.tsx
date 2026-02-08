@@ -1,27 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BackButton from '@/components/BackButton';
 
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState({
-    name: 'Admin User',
-    email: 'admin@example.com',
+    name: '',
+    email: '',
     phone: '',
     timezone: 'America/New_York'
   });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/settings/profile');
+        const data = await res.json();
+        if (data.ok && data.profile) {
+          setProfile({
+            name: data.profile.name || '',
+            email: data.profile.email || '',
+            phone: data.profile.phone || '',
+            timezone: data.profile.timezone || 'America/New_York',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveMessage('');
     try {
-      await fetch('/api/settings/profile', {
+      const res = await fetch('/api/settings/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile)
       });
+      const data = await res.json();
+      if (data.ok) {
+        setSaveMessage('Profile saved successfully');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        setSaveMessage('Failed to save profile');
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
+      setSaveMessage('Failed to save profile');
     } finally {
       setSaving(false);
     }
@@ -97,10 +130,15 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+          <div className="mt-6 pt-6 border-t border-white/10 flex items-center gap-4">
+            <button onClick={handleSave} disabled={saving || loading} className="btn btn-primary">
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
+            {saveMessage && (
+              <span className={`text-sm ${saveMessage.includes('success') ? 'text-emerald-400' : 'text-red-400'}`}>
+                {saveMessage}
+              </span>
+            )}
           </div>
         </div>
       </div>

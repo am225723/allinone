@@ -34,6 +34,36 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    if (body.action === 'add_suppression') {
+      const { kind, value, reason } = body;
+      const { error } = await supabaseServer
+        .from('suppressions')
+        .insert({
+          kind: kind || 'phone',
+          value: value,
+          reason: reason || '',
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === 'remove_suppression') {
+      const { id } = body;
+      const { error } = await supabaseServer
+        .from('suppressions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true });
+    }
     
     const { error } = await supabaseServer
       .from('app_settings')

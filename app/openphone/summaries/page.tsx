@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import BackButton from '@/components/BackButton';
 
 type SummaryRow = {
   id: string;
@@ -22,6 +22,14 @@ type SummaryRow = {
   created_at: string;
 };
 
+type DraftRow = {
+  id: string;
+  phone: string;
+  draft_text: string;
+  status: string;
+  created_at: string;
+};
+
 type ContactSummary = {
   phone: string;
   contact_name: string;
@@ -32,9 +40,10 @@ type ContactSummary = {
   suppress_response: boolean;
   summary: string;
   rows: SummaryRow[];
+  drafts: DraftRow[];
 };
 
-function groupByPhone(rows: SummaryRow[]): ContactSummary[] {
+function groupByPhone(rows: SummaryRow[], drafts: DraftRow[]): ContactSummary[] {
   const map = new Map<string, SummaryRow[]>();
 
   for (const r of rows) {
@@ -44,8 +53,21 @@ function groupByPhone(rows: SummaryRow[]): ContactSummary[] {
     map.get(key)!.push(r);
   }
 
+  const draftMap = new Map<string, DraftRow[]>();
+  for (const d of drafts) {
+    const key = (d.phone || '').trim();
+    if (!key) continue;
+    if (!draftMap.has(key)) draftMap.set(key, []);
+    draftMap.get(key)!.push(d);
+  }
+
   const out: ContactSummary[] = [];
-  for (const [phone, list] of map.entries()) {
+  const allPhones = new Set([...map.keys(), ...draftMap.keys()]);
+
+  for (const phone of allPhones) {
+    const list = map.get(phone) || [];
+    const contactDrafts = draftMap.get(phone) || [];
+
     const sortedByActivity = [...list].sort(
       (a, b) => new Date(b.last_message_at || b.created_at).getTime() - new Date(a.last_message_at || a.created_at).getTime()
     );
@@ -53,7 +75,7 @@ function groupByPhone(rows: SummaryRow[]): ContactSummary[] {
     const name = sortedByActivity.find((r) => (r.contact_name || '').trim())?.contact_name?.trim() || phone;
     const topics = Array.from(new Set(list.flatMap((r) => r.topics || []).filter(Boolean)));
     const needsResponse = list.some((r) => r.needs_response && !r.suppress_response);
-    const suppressResponse = list.every((r) => !!r.suppress_response);
+    const suppressResponse = list.length > 0 && list.every((r) => !!r.suppress_response);
     const lastActivity = sortedByActivity[0]?.last_message_at || sortedByActivity[0]?.created_at || null;
 
     out.push({
@@ -66,6 +88,7 @@ function groupByPhone(rows: SummaryRow[]): ContactSummary[] {
       suppress_response: suppressResponse,
       summary: sortedByActivity[0]?.summary || '',
       rows: sortedByActivity,
+      drafts: contactDrafts,
     });
   }
 
@@ -80,31 +103,44 @@ function groupByPhone(rows: SummaryRow[]): ContactSummary[] {
 }
 
 export default function SummariesPage() {
+  const searchParams = useSearchParams();
+  const runId = searchParams.get('runId');
   const [rows, setRows] = useState<SummaryRow[]>([]);
+  const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filterNeeds, setFilterNeeds] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactSummary | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showSuppressionForm, setShowSuppressionForm] = useState(false);
+  const [suppressionType, setSuppressionType] = useState<'phone' | 'phrase'>('phone');
+  const [suppressionValue, setSuppressionValue] = useState('');
+  const [suppressionReason, setSuppressionReason] = useState('');
 
-  async function loadSummaries() {
+  async function loadData() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/openphone/summaries', { cache: 'no-store' });
-      const json = await res.json();
-      setRows(json.data ?? []);
-      if (json.error) setError(json.error);
+      const [summariesRes, draftsRes] = await Promise.all([
+        fetch('/api/openphone/summaries', { cache: 'no-store' }),
+        fetch('/api/openphone/drafts', { cache: 'no-store' }),
+      ]);
+      const summariesJson = await summariesRes.json();
+      const draftsJson = await draftsRes.json();
+      setRows(summariesJson.data ?? []);
+      if (summariesJson.error) setError(summariesJson.error);
+      setDrafts(draftsJson.drafts ?? draftsJson.data ?? []);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to load summaries');
+      setError(e?.message ?? 'Failed to load data');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { loadSummaries(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const contacts = useMemo(() => groupByPhone(rows), [rows]);
+  const contacts = useMemo(() => groupByPhone(rows, drafts), [rows, drafts]);
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -124,30 +160,135 @@ export default function SummariesPage() {
   const stats = useMemo(() => ({
     total: contacts.length,
     needsResponse: contacts.filter((c) => c.needs_response).length,
+    pendingDrafts: drafts.filter(d => d.status === 'pending').length,
     suppressed: contacts.filter((c) => c.suppress_response).length,
-  }), [contacts]);
+  }), [contacts, drafts]);
+
+  async function handleDraftAction(draftId: string, action: 'approve' | 'reject') {
+    setActionLoading(draftId);
+    try {
+      await fetch(`/api/openphone/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId }),
+      });
+      await loadData();
+    } catch (e) {
+      console.error(`Error ${action}ing draft:`, e);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleSuppress(phone: string) {
+    try {
+      await fetch('/api/openphone/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_suppression',
+          kind: 'phone',
+          value: phone,
+          reason: 'Suppressed from summaries page',
+        }),
+      });
+      await loadData();
+      setSelectedContact(null);
+    } catch (e) {
+      console.error('Error suppressing:', e);
+    }
+  }
+
+  async function handleAddSuppression() {
+    if (!suppressionValue.trim()) return;
+    try {
+      await fetch('/api/openphone/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_suppression',
+          kind: suppressionType,
+          value: suppressionValue.trim(),
+          reason: suppressionReason.trim() || `Suppressed ${suppressionType}`,
+        }),
+      });
+      setSuppressionValue('');
+      setSuppressionReason('');
+      setShowSuppressionForm(false);
+      await loadData();
+    } catch (e) {
+      console.error('Error adding suppression:', e);
+    }
+  }
 
   return (
     <div className="container py-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Link href="/openphone" className="btn btn-ghost p-2">
             <span className="material-symbols-outlined">arrow_back</span>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Summaries</h1>
-            <p className="text-gray-400">View conversation summaries grouped by contact</p>
+            <h1 className="text-2xl font-bold">Summaries & Drafts</h1>
+            <p className="text-[var(--text-muted)]">View conversation summaries, review drafts, and manage suppressions</p>
           </div>
         </div>
-        <button className="btn btn-secondary" onClick={loadSummaries} disabled={loading}>
-          <span className="material-symbols-outlined">refresh</span>
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowSuppressionForm(!showSuppressionForm)}
+          >
+            <span className="material-symbols-outlined">block</span>
+            Suppressions
+          </button>
+          <button className="btn btn-secondary" onClick={loadData} disabled={loading}>
+            <span className="material-symbols-outlined">refresh</span>
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {runId && (
+        <div className="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
+          <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+          <p className="text-emerald-300">Run completed successfully. Showing results below.</p>
+        </div>
+      )}
+
+      {showSuppressionForm && (
+        <div className="card mb-6">
+          <h3 className="card-title mb-4">Add Suppression Rule</h3>
+          <p className="text-sm text-[var(--text-muted)] mb-4">Suppress draft generation for specific phone numbers or text phrases.</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <select
+              className="input"
+              value={suppressionType}
+              onChange={(e) => setSuppressionType(e.target.value as 'phone' | 'phrase')}
+            >
+              <option value="phone">Phone Number</option>
+              <option value="phrase">Text Phrase</option>
+            </select>
+            <input
+              className="input"
+              placeholder={suppressionType === 'phone' ? '+1234567890' : 'Enter phrase to suppress...'}
+              value={suppressionValue}
+              onChange={(e) => setSuppressionValue(e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="Reason (optional)"
+              value={suppressionReason}
+              onChange={(e) => setSuppressionReason(e.target.value)}
+            />
+            <button className="btn btn-primary" onClick={handleAddSuppression}>
+              <span className="material-symbols-outlined">add</span>
+              Add Rule
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="stat-card">
           <span className="stat-label">Total Contacts</span>
           <span className="stat-value">{stats.total}</span>
@@ -157,12 +298,15 @@ export default function SummariesPage() {
           <span className="stat-value text-primary">{stats.needsResponse}</span>
         </div>
         <div className="stat-card">
+          <span className="stat-label">Pending Drafts</span>
+          <span className="stat-value text-amber-400">{stats.pendingDrafts}</span>
+        </div>
+        <div className="stat-card">
           <span className="stat-label">Suppressed</span>
-          <span className="stat-value text-gray-400">{stats.suppressed}</span>
+          <span className="stat-value text-[var(--text-muted)]">{stats.suppressed}</span>
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div className="card mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -189,11 +333,10 @@ export default function SummariesPage() {
         </div>
       </div>
 
-      {/* Loading/Error States */}
       {loading && (
         <div className="card flex items-center justify-center py-12">
           <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
-          <p className="text-gray-400 mt-4">Loading summaries...</p>
+          <p className="text-[var(--text-muted)] mt-4">Loading summaries...</p>
         </div>
       )}
 
@@ -206,12 +349,11 @@ export default function SummariesPage() {
         </div>
       )}
 
-      {/* Empty State */}
       {!loading && filtered.length === 0 && (
         <div className="card text-center py-12">
           <span className="material-symbols-outlined text-6xl text-gray-600 mb-4">summarize</span>
           <h3 className="text-xl font-bold mb-2">No summaries found</h3>
-          <p className="text-gray-400 mb-6">Run a cleanup to generate conversation summaries.</p>
+          <p className="text-[var(--text-muted)] mb-6">Run a cleanup to generate conversation summaries.</p>
           <Link href="/openphone/run" className="btn btn-primary">
             <span className="material-symbols-outlined">play_arrow</span>
             Start a Run
@@ -219,7 +361,6 @@ export default function SummariesPage() {
         </div>
       )}
 
-      {/* Contacts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((contact) => (
           <button
@@ -243,17 +384,20 @@ export default function SummariesPage() {
                 <p className="text-sm text-gray-500">{contact.phone}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-400 line-clamp-2 mb-3">{contact.summary}</p>
+            <p className="text-sm text-[var(--text-muted)] line-clamp-2 mb-3">{contact.summary}</p>
+            {contact.drafts.length > 0 && (
+              <div className="flex items-center gap-1 mb-2">
+                <span className="material-symbols-outlined text-amber-400 text-sm">draft</span>
+                <span className="text-xs text-amber-400">{contact.drafts.filter(d => d.status === 'pending').length} pending draft(s)</span>
+              </div>
+            )}
             <div className="flex flex-wrap gap-1 mb-3">
               {contact.topics.slice(0, 3).map((topic) => (
                 <span key={topic} className="badge">{topic}</span>
               ))}
-              {contact.topics.length > 3 && (
-                <span className="badge">+{contact.topics.length - 3}</span>
-              )}
             </div>
             <div className="text-xs text-gray-500">
-              {contact.conversation_count} conversations • Last activity: {
+              {contact.conversation_count} conversations • Last: {
                 contact.last_activity_at 
                   ? new Date(contact.last_activity_at).toLocaleDateString() 
                   : 'Unknown'
@@ -263,7 +407,6 @@ export default function SummariesPage() {
         ))}
       </div>
 
-      {/* Detail Modal */}
       {selectedContact && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -273,14 +416,14 @@ export default function SummariesPage() {
             className="card max-w-2xl w-full max-h-[80vh] overflow-auto"
             onClick={e => e.stopPropagation()}
           >
-            <div className="card-header sticky top-0 bg-surface-dark z-10">
+            <div className="card-header sticky top-0 bg-[var(--surface)] z-10">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl">
                   {selectedContact.contact_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h3 className="card-title">{selectedContact.contact_name}</h3>
-                  <p className="text-sm text-gray-400">{selectedContact.phone}</p>
+                  <p className="text-sm text-[var(--text-muted)]">{selectedContact.phone}</p>
                 </div>
               </div>
               <button 
@@ -292,23 +435,15 @@ export default function SummariesPage() {
             </div>
 
             <div className="space-y-4 mt-4">
-              {/* Status */}
               <div className="flex gap-2">
-                {selectedContact.needs_response && (
-                  <span className="badge badge-warning">Needs Response</span>
-                )}
-                {selectedContact.suppress_response && (
-                  <span className="badge badge-danger">Suppressed</span>
-                )}
-                {!selectedContact.needs_response && !selectedContact.suppress_response && (
-                  <span className="badge badge-success">OK</span>
-                )}
+                {selectedContact.needs_response && <span className="badge badge-warning">Needs Response</span>}
+                {selectedContact.suppress_response && <span className="badge badge-danger">Suppressed</span>}
+                {!selectedContact.needs_response && !selectedContact.suppress_response && <span className="badge badge-success">OK</span>}
               </div>
 
-              {/* Topics */}
               {selectedContact.topics.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-2">Topics</p>
+                  <p className="text-sm text-[var(--text-muted)] mb-2">Topics</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedContact.topics.map((topic) => (
                       <span key={topic} className="badge">{topic}</span>
@@ -317,19 +452,59 @@ export default function SummariesPage() {
                 </div>
               )}
 
-              {/* Conversations */}
+              {selectedContact.drafts.length > 0 && (
+                <div>
+                  <p className="text-sm text-[var(--text-muted)] mb-2">Draft Replies ({selectedContact.drafts.length})</p>
+                  <div className="space-y-3">
+                    {selectedContact.drafts.map((draft) => (
+                      <div key={draft.id} className="p-4 rounded-xl border-2 border-amber-500/20 bg-amber-500/5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="material-symbols-outlined text-amber-400 text-sm">draft</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            draft.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                            draft.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>{draft.status}</span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap mb-3">{draft.draft_text}</p>
+                        {draft.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleDraftAction(draft.id, 'approve')}
+                              disabled={actionLoading === draft.id}
+                            >
+                              <span className="material-symbols-outlined text-sm">check</span>
+                              Approve
+                            </button>
+                            <button
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => handleDraftAction(draft.id, 'reject')}
+                              disabled={actionLoading === draft.id}
+                            >
+                              <span className="material-symbols-outlined text-sm">close</span>
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
-                <p className="text-sm text-gray-400 mb-2">Conversations ({selectedContact.rows.length})</p>
+                <p className="text-sm text-[var(--text-muted)] mb-2">Conversations ({selectedContact.rows.length})</p>
                 <div className="space-y-3">
                   {selectedContact.rows.map((row) => (
-                    <div key={row.id} className="p-4 bg-surface-darker rounded-xl">
+                    <div key={row.id} className="p-4 bg-[var(--bg-darker)] rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">{row.date_range}</span>
                         <span className={`badge ${row.needs_response ? 'badge-warning' : 'badge-success'}`}>
                           {row.needs_response ? 'Needs Response' : 'OK'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-400 mb-3">{row.summary}</p>
+                      <p className="text-sm text-[var(--text-muted)] mb-3">{row.summary}</p>
                       {row.last_inbound && (
                         <div className="text-xs bg-black/20 p-2 rounded mb-2">
                           <span className="text-gray-500">Last inbound:</span> {row.last_inbound}
@@ -345,15 +520,16 @@ export default function SummariesPage() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-white/10">
-                <Link href="/openphone/review" className="btn btn-primary flex-1">
-                  Review Drafts
-                </Link>
-                <button className="btn btn-danger">
-                  <span className="material-symbols-outlined">block</span>
-                  Suppress
-                </button>
+                {!selectedContact.suppress_response && (
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => handleSuppress(selectedContact.phone)}
+                  >
+                    <span className="material-symbols-outlined">block</span>
+                    Suppress This Number
+                  </button>
+                )}
               </div>
             </div>
           </div>

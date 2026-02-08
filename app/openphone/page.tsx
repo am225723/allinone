@@ -1,6 +1,49 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+interface QuoStats {
+  totalConversations: number;
+  needsResponse: number;
+  pendingDrafts: number;
+  approvedDrafts: number;
+}
+
 export default function QuoPage() {
+  const [stats, setStats] = useState<QuoStats>({ totalConversations: 0, needsResponse: 0, pendingDrafts: 0, approvedDrafts: 0 });
+  const [recentSummaries, setRecentSummaries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [statsRes, summariesRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/openphone/summaries'),
+        ]);
+        const statsData = await statsRes.json();
+        const summariesData = await summariesRes.json();
+        if (statsData.ok && statsData.stats?.openphone) {
+          setStats({
+            totalConversations: statsData.stats.openphone.totalConversations || 0,
+            needsResponse: statsData.stats.openphone.needsResponse || 0,
+            pendingDrafts: statsData.stats.openphone.pendingDrafts || 0,
+            approvedDrafts: statsData.stats.openphone.approvedDrafts || 0,
+          });
+        }
+        if (summariesData.data) {
+          setRecentSummaries(summariesData.data.slice(0, 4));
+        }
+      } catch (error) {
+        console.error('Error loading Quo data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   return (
     <div className="container py-6">
       {/* Header */}
@@ -22,19 +65,19 @@ export default function QuoPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
           <span className="stat-label">Total Conversations</span>
-          <span className="stat-value">847</span>
+          <span className="stat-value">{loading ? '...' : stats.totalConversations}</span>
         </div>
         <div className="stat-card" style={{ borderColor: 'rgba(230, 59, 25, 0.3)' }}>
           <span className="stat-label">Needs Response</span>
-          <span className="stat-value text-primary">12</span>
+          <span className="stat-value text-primary">{loading ? '...' : stats.needsResponse}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Pending Drafts</span>
-          <span className="stat-value text-amber-400">5</span>
+          <span className="stat-value text-amber-400">{loading ? '...' : stats.pendingDrafts}</span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Sent Today</span>
-          <span className="stat-value text-emerald-400">23</span>
+          <span className="stat-label">Approved Drafts</span>
+          <span className="stat-value text-emerald-400">{loading ? '...' : stats.approvedDrafts}</span>
         </div>
       </div>
 
@@ -155,34 +198,33 @@ export default function QuoPage() {
           </Link>
         </div>
         <div className="space-y-3">
-          {[
-            { name: 'Jane Doe', phone: '+1 (555) 123-4567', message: 'I need the refund processed today...', status: 'needs_response', time: '2m ago' },
-            { name: 'Mark Smith', phone: '+1 (555) 234-5678', message: 'Thanks for the quick response!', status: 'resolved', time: '15m ago' },
-            { name: 'Alex Chen', phone: '+1 (555) 345-6789', message: 'Yes, 3pm works perfectly for me.', status: 'resolved', time: '1h ago' },
-            { name: 'Sarah Johnson', phone: '+1 (555) 456-7890', message: 'Can you confirm my appointment?', status: 'pending', time: '2h ago' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+          {recentSummaries.length === 0 && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              <span className="material-symbols-outlined text-4xl mb-2">sms</span>
+              <p>No recent activity. Start a run to process conversations.</p>
+            </div>
+          )}
+          {recentSummaries.map((item: any) => (
+            <Link key={item.id} href="/openphone/summaries" className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                {item.name.charAt(0)}
+                {(item.contact_name || '?').charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{item.name}</span>
+                  <span className="font-medium">{item.contact_name || 'Unknown'}</span>
                   <span className="text-xs text-gray-500">{item.phone}</span>
                 </div>
-                <p className="text-sm text-gray-400 truncate">{item.message}</p>
+                <p className="text-sm text-gray-400 truncate">{item.summary}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <span className={`badge ${
-                  item.status === 'needs_response' ? 'badge-warning' :
-                  item.status === 'resolved' ? 'badge-success' : ''
-                }`}>
-                  {item.status === 'needs_response' ? 'Needs Response' :
-                   item.status === 'resolved' ? 'Resolved' : 'Pending'}
+                <span className={`badge ${item.needs_response ? 'badge-warning' : 'badge-success'}`}>
+                  {item.needs_response ? 'Needs Response' : 'OK'}
                 </span>
-                <span className="text-xs text-gray-500">{item.time}</span>
+                {item.last_message_at && (
+                  <span className="text-xs text-gray-500">{new Date(item.last_message_at).toLocaleDateString()}</span>
+                )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

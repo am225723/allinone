@@ -1,56 +1,94 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface PinGuardProps {
   children: React.ReactNode;
 }
 
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+
 export default function PinGuard({ children }: PinGuardProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const lastActivityRef = useRef(Date.now());
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLogout = useCallback(() => {
+    setIsAuthenticated(false);
+    fetch('/api/auth/pin', { method: 'DELETE' }).catch(() => {});
+    router.push('/login');
+  }, [router]);
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/check-role');
+      const data = await res.json();
+      if (data.ok) {
+        setIsAuthenticated(true);
+      } else {
+        handleLogout();
+      }
+    } catch (e) {
+      handleLogout();
+    }
+  }, [handleLogout]);
 
   useEffect(() => {
-    // If we are on the login page, we reset the auth state because we shouldn't
-    // assume we are authenticated if we are looking at the login screen.
-    if (pathname === '/login') {
-      setIsAuthenticated(null);
-      return;
-    }
-
-    // Optimization: If we are already authenticated, don't re-check on every navigation.
-    if (isAuthenticated === true) {
-      return;
-    }
-
-    // Check auth via API (httpOnly cookies can't be read by JavaScript)
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/auth/check-role');
-        const data = await res.json();
-        if (data.ok) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          router.push('/login');
-        }
-      } catch (e) {
-        setIsAuthenticated(false);
-        router.push('/login');
-      }
+    const trackActivity = () => {
+      lastActivityRef.current = Date.now();
     };
 
-    checkAuth();
-  }, [pathname, router, isAuthenticated]);
+    if (pathname !== '/login' && isAuthenticated) {
+      ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, trackActivity, { passive: true }));
+      return () => {
+        ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, trackActivity));
+      };
+    }
+  }, [pathname, isAuthenticated]);
 
-  // If on login page, render children immediately (login form)
+  useEffect(() => {
+    if (pathname === '/login') {
+      setIsAuthenticated(null);
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+      return;
+    }
+
+    if (isAuthenticated === true) {
+      if (!checkIntervalRef.current) {
+        checkIntervalRef.current = setInterval(() => {
+          const inactiveDuration = Date.now() - lastActivityRef.current;
+          if (inactiveDuration > 30 * 60 * 1000) {
+            handleLogout();
+          } else {
+            checkAuth();
+          }
+        }, SESSION_CHECK_INTERVAL);
+      }
+      return;
+    }
+
+    checkAuth();
+  }, [pathname, router, isAuthenticated, checkAuth, handleLogout]);
+
+  useEffect(() => {
+    return () => {
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+      }
+    };
+  }, []);
+
   if (pathname === '/login') {
     return <>{children}</>;
   }
 
-  // Show loading while checking auth
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -61,7 +99,6 @@ export default function PinGuard({ children }: PinGuardProps) {
     );
   }
 
-  // If not authenticated and not on login page, show nothing (will redirect)
   if (isAuthenticated === false) {
     return null;
   }

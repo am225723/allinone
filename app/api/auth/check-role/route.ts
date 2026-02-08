@@ -3,9 +3,26 @@ import { supabaseServer } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
+const SESSION_MAX_AGE = 60 * 30; // 30 minutes
+
+function refreshSessionCookies(response: NextResponse, userId: string, role: string) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: SESSION_MAX_AGE,
+    path: '/',
+  };
+  response.cookies.set('pin_authenticated', 'true', cookieOptions);
+  response.cookies.set('user_id', userId, cookieOptions);
+  response.cookies.set('user_role', role, cookieOptions);
+  if (role === 'admin') {
+    response.cookies.set('admin_authenticated', 'true', cookieOptions);
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Read httpOnly cookies set by server during PIN auth
     const pinCookie = request.cookies.get('pin_authenticated');
     const userIdCookie = request.cookies.get('user_id');
     const userRoleCookie = request.cookies.get('user_role');
@@ -14,15 +31,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
     }
 
-    const userId = userIdCookie?.value;
-    const userRole = userRoleCookie?.value;
+    const userId = userIdCookie?.value || 'default';
+    const userRole = userRoleCookie?.value || 'user';
     
-    // If no user ID, return basic user role
     if (!userId || userId === 'default') {
-      return NextResponse.json({ ok: true, role: 'user' });
+      const response = NextResponse.json({ ok: true, role: 'user' });
+      refreshSessionCookies(response, 'default', 'user');
+      return response;
     }
 
-    // Validate user still exists and is active, and verify role from database
     const { data: user, error } = await supabaseServer
       .from('comm_users')
       .select('role, is_active')
@@ -30,16 +47,19 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !user) {
-      // User not found, return user role from cookie as fallback
-      return NextResponse.json({ ok: true, role: userRole || 'user' });
+      const response = NextResponse.json({ ok: true, role: userRole });
+      refreshSessionCookies(response, userId, userRole);
+      return response;
     }
 
     if (!user.is_active) {
       return NextResponse.json({ ok: false, error: 'User is inactive' }, { status: 403 });
     }
 
-    // Return the verified role from database
-    return NextResponse.json({ ok: true, role: user.role || 'user' });
+    const verifiedRole = user.role || 'user';
+    const response = NextResponse.json({ ok: true, role: verifiedRole });
+    refreshSessionCookies(response, userId, verifiedRole);
+    return response;
   } catch (error) {
     console.error('Error checking role:', error);
     return NextResponse.json({ ok: false, error: 'Server error' }, { status: 500 });

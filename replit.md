@@ -64,6 +64,15 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 ## Recent Changes
 - 2026-02-05: Added WebAuthn biometric authentication (Face ID, Touch ID, Windows Hello) with database-backed challenge storage
 - 2026-02-05: Created BiometricEnrollment prompt after PIN login and BiometricSettings component in Security settings
+- 2026-02-08: Quo page now fetches real stats from /api/stats and real summaries from /api/openphone/summaries (no hardcoded data)
+- 2026-02-08: Patient-stats API fetches calendar URLs from app_settings, parses ICS files, computes real appointment counts and next appointment
+- 2026-02-08: Created calendar URL management API (app/api/calendar/urls/) - GET/POST for storing calendar URLs in app_settings
+- 2026-02-08: Created Gmail OAuth callback route (app/api/gmail/auth/callback/) for multi-account token exchange
+- 2026-02-08: Quo run auto-redirects to summaries page after completion
+- 2026-02-08: Rewrote summaries page with inline draft approve/reject and suppression management UI
+- 2026-02-08: Added suppression add/remove actions to OpenPhone settings API
+- 2026-02-08: Homepage shows next appointment card from calendar data
+- 2026-02-08: Created note templates PUT/DELETE endpoints (app/api/notes/templates/[id]/)
 - 2026-02-05: Added Light Mode support with theme toggle in sidebar, CSS variables for both themes, localStorage persistence
 - 2026-02-05: Fixed Perplexity API error by removing unsupported response_format parameter
 - 2026-02-05: Fixed PinGuard auth check to use API instead of httpOnly cookie reading

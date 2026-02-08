@@ -540,6 +540,25 @@ export default function DashboardHome() {
             )}
           </div>
 
+          {patientStats?.nextAppointment && (
+            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur border border-purple-500/20 shadow-lg shadow-purple-500/10 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <span className="material-symbols-outlined text-purple-400 text-2xl">event_upcoming</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-purple-300/60 mb-0.5">Next Appointment</p>
+                <p className="font-semibold text-white">{patientStats.nextAppointment.summary}</p>
+                <p className="text-sm text-purple-200/60">{patientStats.nextAppointment.time}</p>
+              </div>
+              <Link 
+                href="/patients"
+                className="py-2 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-sm font-medium transition-colors border border-purple-500/20"
+              >
+                View
+              </Link>
+            </div>
+          )}
+
           {/* Recent Unified Feed with Glow */}
           <div className="rounded-2xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 backdrop-blur border border-blue-500/10 shadow-lg shadow-blue-500/5 p-5">
             <div className="flex items-center justify-between mb-4">
