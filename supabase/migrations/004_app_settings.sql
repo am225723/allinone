@@ -1,20 +1,19 @@
--- App Settings table for storing configuration like PIN
-CREATE TABLE IF NOT EXISTS app_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key TEXT UNIQUE NOT NULL,
-  value TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+-- Migration 004: Add key/value columns to existing app_settings table
+-- The app_settings table already exists with category-based columns.
+-- This adds a generic key/value pair capability for new features (calendar URLs, PIN, etc.)
 
--- Create index on key for fast lookups
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'app_settings' AND column_name = 'key') THEN
+    ALTER TABLE app_settings ADD COLUMN key TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'app_settings' AND column_name = 'value') THEN
+    ALTER TABLE app_settings ADD COLUMN value TEXT;
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings(key);
 
--- Insert default PIN (123456) - should be changed immediately
-INSERT INTO app_settings (key, value) VALUES ('app_pin', '123456')
-ON CONFLICT (key) DO NOTHING;
-
--- Trigger to update updated_at
 CREATE OR REPLACE FUNCTION update_app_settings_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -23,14 +22,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS app_settings_updated_at ON app_settings;
 CREATE TRIGGER app_settings_updated_at
   BEFORE UPDATE ON app_settings
   FOR EACH ROW
   EXECUTE FUNCTION update_app_settings_updated_at();
-
--- RLS policies
-ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
-
--- Allow service role full access
-CREATE POLICY "Service role can manage settings" ON app_settings
-  FOR ALL USING (true) WITH CHECK (true);
