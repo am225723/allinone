@@ -1,0 +1,52 @@
+layout-39044fa287384dcb.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 Service Worker registered with scope: https://agent.drz.services/
+sw.ts:20 Event handler of 'message' event must be added on the initial evaluation of worker script.
+F @ sw.ts:20
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+/api/auth/webauthn/register:1  Failed to load resource: the server responded with a status of 500 ()
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1 `[Worker Messenger] [Page -> SW] Could not get ServiceWorkerRegistration to postMessage!
+push.2304.window.console.error @ 117-3820e238d9f9df4b.js?dpl=dpl_Gg9j9Dt7HaMK85tZjzmckLYALzEs:1
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".

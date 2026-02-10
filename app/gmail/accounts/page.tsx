@@ -21,7 +21,7 @@ export default function GmailAccountsPage() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/gmail/accounts');
+      const res = a  wait fetch('/api/gmail/accounts');
       if (res.ok) {
         const data = await res.json();
         setAccounts(data.accounts || []);
