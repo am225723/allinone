@@ -13,6 +13,11 @@ import { supabaseServer } from './supabase';
 
 const RP_NAME = 'Command Center';
 
+function uint8ArrayToBase64url(arr: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...arr));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 function getRpId(): string {
   if (process.env.WEBAUTHN_RP_ID) return process.env.WEBAUTHN_RP_ID;
   return 'localhost';
@@ -50,7 +55,7 @@ export async function getRegistrationOptions(userId: string, userName: string) {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: Buffer.from(userId),
+    userID: new TextEncoder().encode(userId),
     userName: userName || userId,
     attestationType: 'none',
     excludeCredentials,
@@ -87,8 +92,8 @@ export async function verifyAndSaveRegistration(
     .from('webauthn_credentials')
     .insert({
       user_id: userId,
-      credential_id: Buffer.from(credential.id).toString('base64url'),
-      public_key: Buffer.from(credential.publicKey).toString('base64url'),
+      credential_id: uint8ArrayToBase64url(credential.id),
+      public_key: uint8ArrayToBase64url(credential.publicKey),
       counter: credential.counter,
       device_name: deviceName || credentialDeviceType || 'Unknown Device',
       transports: response.response.transports || [],

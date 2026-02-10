@@ -4,7 +4,7 @@ export const runtime = 'edge';
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/gmail/auth/callback`;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google-callback`;
   
   if (!clientId) {
     return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 500 });

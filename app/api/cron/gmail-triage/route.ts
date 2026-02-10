@@ -1,11 +1,6 @@
-/**
- * Cron Job: Gmail Auto-Triage
- * Runs every 4 hours via Vercel Cron
- */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-
-export const runtime = 'edge';
+import { sendDraftReadyNotification } from '@/lib/onesignal';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +25,14 @@ export async function GET(request: NextRequest) {
         priority: 'normal',
         read: false,
       });
+
+      if (result.draftsCreated > 0) {
+        try {
+          await sendDraftReadyNotification({ count: result.draftsCreated });
+        } catch (pushErr) {
+          console.warn('Push notification failed (non-critical):', pushErr);
+        }
+      }
     }
 
     return NextResponse.json({ 

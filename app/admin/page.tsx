@@ -227,10 +227,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/push/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_PUSH_API_SECRET || '',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'custom',
           title: notificationForm.title,

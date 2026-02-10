@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-
-export const runtime = 'edge';
+import { sendNotification } from '@/lib/onesignal';
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,6 +93,17 @@ export async function GET(request: NextRequest) {
         priority: tasksCreated >= 3 ? 'high' : 'normal',
         read: false,
       });
+
+      try {
+        await sendNotification({
+          title: 'Session Notes Needed',
+          message: `${tasksCreated} session(s) from yesterday/today still need clinical notes.`,
+          url: '/noteai',
+          priority: tasksCreated >= 3 ? 'high' : 'normal',
+        });
+      } catch (pushErr) {
+        console.warn('Push notification failed (non-critical):', pushErr);
+      }
     }
 
     return NextResponse.json({

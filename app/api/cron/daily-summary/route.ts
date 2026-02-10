@@ -1,12 +1,6 @@
-/**
- * Cron Job: Daily Summary Email
- * Runs daily at 8 AM UTC via Vercel Cron
- * @vercel Edge Runtime enabled
- */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-
-export const runtime = 'edge';
+import { sendDailySummaryNotification } from '@/lib/onesignal';
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,6 +56,12 @@ export async function GET(request: NextRequest) {
       read: false,
       metadata: { stats, date: yesterday.toISOString().split('T')[0] },
     });
+
+    try {
+      await sendDailySummaryNotification({ stats });
+    } catch (pushErr) {
+      console.warn('Push notification failed (non-critical):', pushErr);
+    }
 
     return NextResponse.json({ 
       ok: true, 

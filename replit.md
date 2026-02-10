@@ -90,6 +90,13 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - 2026-02-03: Added Template creation in Template Settings (custom templates with sections)
 - 2026-02-03: Added Google Drive file import in Session Inputs (alongside local upload)
 - 2026-02-03: Added "Save to Patient Folder" button that exports PDF to correct patient folder on Google Drive
+- 2026-02-10: Fixed Gmail OAuth redirect_uri mismatch - created /api/auth/google-callback route matching Google Cloud Console registration
+- 2026-02-10: Set GOOGLE_REDIRECT_URI env var to https://agent.drz.services/api/auth/google-callback
+- 2026-02-10: Removed all mock/hardcoded demo data from Patients page - now auto-loads real calendar events from saved URLs
+- 2026-02-10: Fixed WebAuthn biometric registration 500 error - updated userID encoding for @simplewebauthn v13 (TextEncoder instead of Buffer)
+- 2026-02-10: Updated push notification endpoint to accept cookie-based admin/PIN session auth (no API key needed from admin panel)
+- 2026-02-10: Wired push notifications into cron jobs: daily-summary sends daily summary push, note-reminders sends missing notes push, gmail-triage sends drafts-ready push
+- 2026-02-10: Admin panel notification form now uses session auth instead of NEXT_PUBLIC_PUSH_API_SECRET
 - 2026-02-03: Redesigned /noteai page - merged Template + Prompt Profile into single Template
 
 ## Client Database

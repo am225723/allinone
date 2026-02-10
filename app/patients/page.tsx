@@ -167,6 +167,7 @@ export default function PatientsPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendarUrl, setCalendarUrl] = useState('');
   const [importing, setImporting] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(true);
   const [importError, setImportError] = useState<string | null>(null);
   const [tzOffsetMins, setTzOffsetMins] = useState(0);
   const [showImportPanel, setShowImportPanel] = useState(false);
@@ -214,50 +215,56 @@ export default function PatientsPage() {
   }, [events]);
 
   useEffect(() => {
-    const now = new Date();
-    const d = startOfDay(now);
-    const demo: CalendarEvent[] = [
-      {
-        id: 'demo-1',
-        start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0, 0),
-        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 10, 0, 0),
-        summary: 'Follow-up: Anxiety',
-        description: 'Reason: medication follow-up',
-        location: 'Telehealth',
-        color: '#3b82f6',
-        client: {
-          name: 'Jennie Rivers',
-          dob: '1989-07-16',
-          gender: 'Female',
-          email: 'jennie.rivers@example.com',
-          phone: '(555) 055-0158',
-          address: '123 Main St, New York, NY',
-        },
-        appointment: { type: 'Follow-up', notes: '' },
-      },
-      {
-        id: 'demo-2',
-        start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 11, 30, 0),
-        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 45, 0),
-        summary: 'Intake: ADHD Evaluation',
-        description: 'Initial intake and assessment',
-        location: 'Office',
-        color: '#ef4444',
-        client: {
-          name: 'Morgan Patel',
-          dob: '1988-02-02',
-          gender: 'Male',
-          email: 'morgan@example.com',
-          phone: '(555) 555-0188',
-          address: '456 Broadway, New York, NY',
-        },
-        appointment: { type: 'Intake', notes: '' },
-      },
-    ];
+    async function loadCalendarEvents() {
+      setCalendarLoading(true);
+      try {
+        const urlsRes = await fetch('/api/calendar/urls');
+        const urlsData = await urlsRes.json();
 
-    setEvents(demo);
-    setSelectedEventId('demo-1');
-  }, []);
+        if (!urlsData.ok || !urlsData.urls || urlsData.urls.length === 0) {
+          setEvents([]);
+          setSelectedEventId(null);
+          setCalendarLoading(false);
+          return;
+        }
+
+        const allEvents: CalendarEvent[] = [];
+
+        for (const url of urlsData.urls) {
+          try {
+            const importRes = await fetch(
+              `/api/calendar/import?url=${encodeURIComponent(url)}&offset=${tzOffsetMins}`
+            );
+            const importData = await importRes.json();
+
+            if (importData.ok && importData.events) {
+              const parsed = importData.events.map((e: any) => ({
+                ...e,
+                start: new Date(e.start),
+                end: new Date(e.end),
+              })) as CalendarEvent[];
+              allEvents.push(...parsed);
+            }
+          } catch (e) {
+            console.error(`Failed to import calendar from ${url}:`, e);
+          }
+        }
+
+        allEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+        setEvents(allEvents);
+        setSelectedEventId(allEvents[0]?.id || null);
+        if (allEvents[0]) setSelectedDay(startOfDay(allEvents[0].start));
+      } catch (e) {
+        console.error('Failed to load calendar events:', e);
+        setEvents([]);
+        setSelectedEventId(null);
+      } finally {
+        setCalendarLoading(false);
+      }
+    }
+
+    loadCalendarEvents();
+  }, [tzOffsetMins]);
 
   async function importFromUrl() {
     setImportError(null);
@@ -504,61 +511,87 @@ export default function PatientsPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto relative pr-2">
-            <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-              {/* Time slots */}
-              {slots.map((s, idx) => (
-                <div
-                  key={s.hour}
-                  className="border-t border-white/5 h-16 relative"
-                >
-                  <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
-                    {s.label}
-                  </span>
+            {calendarLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin w-8 h-8 rounded-full border-2 border-gray-600 border-t-blue-500 mx-auto mb-3"></div>
+                  <p className="text-sm text-gray-400">Loading calendar...</p>
                 </div>
-              ))}
-
-              {/* Event blocks */}
-              {eventsForDay.map((ev) => {
-                const dayStart = new Date(selectedDay);
-                dayStart.setHours(8, 0, 0, 0);
-                const totalHours = slots.length;
-
-                const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
-                const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
-                const top = startH * 64;
-                const height = Math.max(50, (endH - startH) * 64);
-
-                const summaryLower = (ev.summary || '').toLowerCase();
-                const locationLower = (ev.location || '').toLowerCase();
-                const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
-                const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
-                
-                const bgColor = isIntake ? 'bg-red-500' : 'bg-blue-500';
-                const borderColor = isIntake ? 'border-red-400' : 'border-blue-400';
-                const textSecondary = isIntake ? 'text-red-100' : 'text-blue-100';
-
-                return (
+              </div>
+            ) : events.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+                    <span className="material-symbols-outlined text-4xl text-blue-400">event</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-1">No calendar connected</h3>
+                  <p className="text-sm text-gray-400 mb-4">Import a calendar to see your appointments</p>
                   <button
-                    key={ev.id}
-                    onClick={() => setSelectedEventId(ev.id)}
-                    className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${bgColor} ${borderColor} ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
-                    style={{ top: `${top}px`, height: `${height}px` }}
+                    onClick={() => setShowImportPanel(true)}
+                    className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-sm font-medium transition"
                   >
-                    <div className="flex justify-between items-start text-white">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
-                        <p className={`text-xs mt-0.5 ${textSecondary}`}>
-                          {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
-                        </p>
-                      </div>
-                      <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
-                        {isTelehealth ? 'videocam' : 'assignment_ind'}
-                      </span>
-                    </div>
+                    <span className="material-symbols-outlined inline text-base align-middle mr-1.5">add</span>
+                    Import Calendar
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
+                {/* Time slots */}
+                {slots.map((s, idx) => (
+                  <div
+                    key={s.hour}
+                    className="border-t border-white/5 h-16 relative"
+                  >
+                    <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+
+                {/* Event blocks */}
+                {eventsForDay.map((ev) => {
+                  const dayStart = new Date(selectedDay);
+                  dayStart.setHours(8, 0, 0, 0);
+                  const totalHours = slots.length;
+
+                  const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
+                  const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
+                  const top = startH * 64;
+                  const height = Math.max(50, (endH - startH) * 64);
+
+                  const summaryLower = (ev.summary || '').toLowerCase();
+                  const locationLower = (ev.location || '').toLowerCase();
+                  const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
+                  const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
+                  
+                  const bgColor = isIntake ? 'bg-red-500' : 'bg-blue-500';
+                  const borderColor = isIntake ? 'border-red-400' : 'border-blue-400';
+                  const textSecondary = isIntake ? 'text-red-100' : 'text-blue-100';
+
+                  return (
+                    <button
+                      key={ev.id}
+                      onClick={() => setSelectedEventId(ev.id)}
+                      className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${bgColor} ${borderColor} ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                      style={{ top: `${top}px`, height: `${height}px` }}
+                    >
+                      <div className="flex justify-between items-start text-white">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
+                          <p className={`text-xs mt-0.5 ${textSecondary}`}>
+                            {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
+                          {isTelehealth ? 'videocam' : 'assignment_ind'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
