@@ -3,9 +3,18 @@ import { supabaseServer } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
-const SESSION_MAX_AGE = 60 * 30; // 30 minutes
+const SESSION_MAX_AGE = 60 * 30;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
-function refreshSessionCookies(response: NextResponse, userId: string, role: string) {
+function clearAllCookies(response: NextResponse) {
+  response.cookies.delete('pin_authenticated');
+  response.cookies.delete('admin_authenticated');
+  response.cookies.delete('user_id');
+  response.cookies.delete('user_role');
+  response.cookies.delete('last_active');
+}
+
+function setSessionCookies(response: NextResponse, userId: string, role: string) {
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -26,9 +35,20 @@ export async function GET(request: NextRequest) {
     const pinCookie = request.cookies.get('pin_authenticated');
     const userIdCookie = request.cookies.get('user_id');
     const userRoleCookie = request.cookies.get('user_role');
+    const lastActiveCookie = request.cookies.get('last_active');
     
     if (!pinCookie?.value) {
       return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
+    }
+
+    if (lastActiveCookie?.value) {
+      const lastActive = parseInt(lastActiveCookie.value, 10);
+      const inactiveDuration = Date.now() - lastActive;
+      if (inactiveDuration >= INACTIVITY_TIMEOUT) {
+        const response = NextResponse.json({ ok: false, error: 'Session expired due to inactivity' }, { status: 401 });
+        clearAllCookies(response);
+        return response;
+      }
     }
 
     const userId = userIdCookie?.value || 'default';
@@ -36,7 +56,7 @@ export async function GET(request: NextRequest) {
     
     if (!userId || userId === 'default') {
       const response = NextResponse.json({ ok: true, role: 'user' });
-      refreshSessionCookies(response, 'default', 'user');
+      setSessionCookies(response, 'default', 'user');
       return response;
     }
 
@@ -48,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     if (error || !user) {
       const response = NextResponse.json({ ok: true, role: userRole });
-      refreshSessionCookies(response, userId, userRole);
+      setSessionCookies(response, userId, userRole);
       return response;
     }
 
@@ -58,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     const verifiedRole = user.role || 'user';
     const response = NextResponse.json({ ok: true, role: verifiedRole });
-    refreshSessionCookies(response, userId, verifiedRole);
+    setSessionCookies(response, userId, verifiedRole);
     return response;
   } catch (error) {
     console.error('Error checking role:', error);

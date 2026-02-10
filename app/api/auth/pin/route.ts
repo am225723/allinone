@@ -3,6 +3,14 @@ import { supabaseServer } from '@/lib/supabase';
 
 export const runtime = 'edge';
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 60 * 30,
+  path: '/',
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { pin } = await request.json();
@@ -11,7 +19,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'PIN must be exactly 4 digits' }, { status: 400 });
     }
 
-    // Get user with matching PIN from comm_users table
     const { data, error } = await supabaseServer
       .from('comm_users')
       .select('id, pin, name, role')
@@ -21,73 +28,30 @@ export async function POST(request: NextRequest) {
 
     if (error || !data) {
       console.error('Error fetching user:', error);
-      // For development/fallback, accept default PIN
       if (pin === '1234') {
         const response = NextResponse.json({ ok: true, role: 'user' });
-        response.cookies.set('pin_authenticated', 'true', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 30, // 30 minutes
-          path: '/',
-        });
-        response.cookies.set('user_id', 'default', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 30, // 30 minutes
-          path: '/',
-        });
-        response.cookies.set('user_role', 'user', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 30, // 30 minutes
-          path: '/',
-        });
+        response.cookies.set('pin_authenticated', 'true', COOKIE_OPTIONS);
+        response.cookies.set('user_id', 'default', COOKIE_OPTIONS);
+        response.cookies.set('user_role', 'user', COOKIE_OPTIONS);
+        response.cookies.set('last_active', Date.now().toString(), COOKIE_OPTIONS);
         return response;
       }
       return NextResponse.json({ ok: false, error: 'Invalid PIN' }, { status: 401 });
     }
 
-    // Update last_login timestamp
     await supabaseServer
       .from('comm_users')
       .update({ last_login: new Date().toISOString() })
       .eq('id', data.id);
 
-    // Set authentication cookies (all httpOnly for security)
     const response = NextResponse.json({ ok: true, role: data.role || 'user' });
-    response.cookies.set('pin_authenticated', 'true', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 30, // 30 minutes
-      path: '/',
-    });
+    response.cookies.set('pin_authenticated', 'true', COOKIE_OPTIONS);
     if (data.role === 'admin') {
-      response.cookies.set('admin_authenticated', 'true', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 30, // 30 minutes
-        path: '/',
-      });
+      response.cookies.set('admin_authenticated', 'true', COOKIE_OPTIONS);
     }
-    response.cookies.set('user_id', data.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 30, // 30 minutes
-      path: '/',
-    });
-    response.cookies.set('user_role', data.role || 'user', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 30, // 30 minutes
-      path: '/',
-    });
+    response.cookies.set('user_id', data.id, COOKIE_OPTIONS);
+    response.cookies.set('user_role', data.role || 'user', COOKIE_OPTIONS);
+    response.cookies.set('last_active', Date.now().toString(), COOKIE_OPTIONS);
 
     return response;
   } catch (error) {
@@ -97,11 +61,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Logout - clear all auth cookies
   const response = NextResponse.json({ ok: true });
   response.cookies.delete('pin_authenticated');
   response.cookies.delete('admin_authenticated');
   response.cookies.delete('user_id');
   response.cookies.delete('user_role');
+  response.cookies.delete('last_active');
   return response;
 }
