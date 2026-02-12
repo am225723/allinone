@@ -1,0 +1,38 @@
+00:27:17.084 Running build in Washington, D.C., USA (East) – iad1
+00:27:17.085 Build machine configuration: 4 cores, 8 GB
+00:27:17.187 Cloning github.com/am225723/allinone (Branch: feature/unified-communications-dashboard, Commit: 06b9f2f)
+00:27:17.655 Cloning completed: 468.000ms
+00:27:19.104 Restored build cache from previous deployment (Gg9j9Dt7HaMK85tZjzmckLYALzEs)
+00:27:19.436 Running "vercel build"
+00:27:19.965 Vercel CLI 50.15.1
+00:27:20.269 Installing dependencies...
+00:27:21.433 
+00:27:21.433 up to date in 966ms
+00:27:21.434 
+00:27:21.434 158 packages are looking for funding
+00:27:21.434   run `npm fund` for details
+00:27:21.465 Detected Next.js version: 14.2.35
+00:27:21.470 Running "npm run build"
+00:27:21.573 
+00:27:21.573 > unified-communications-dashboard@1.0.0 build
+00:27:21.573 > next build
+00:27:21.573 
+00:27:22.263   ▲ Next.js 14.2.35
+00:27:22.263 
+00:27:22.288    Creating an optimized production build ...
+00:27:40.966  ✓ Compiled successfully
+00:27:40.967    Linting and checking validity of types ...
+00:27:58.450 Failed to compile.
+00:27:58.450 
+00:27:58.450 ./lib/webauthn.ts:95:44
+00:27:58.450 Type error: Argument of type 'string' is not assignable to parameter of type 'Uint8Array<ArrayBufferLike>'.
+00:27:58.450 
+00:27:58.450 [0m [90m 93 |[39m     [33m.[39minsert({[0m
+00:27:58.451 [0m [90m 94 |[39m       user_id[33m:[39m userId[33m,[39m[0m
+00:27:58.451 [0m[31m[1m>[22m[39m[90m 95 |[39m       credential_id[33m:[39m uint8ArrayToBase64url(credential[33m.[39mid)[33m,[39m[0m
+00:27:58.451 [0m [90m    |[39m                                            [31m[1m^[22m[39m[0m
+00:27:58.451 [0m [90m 96 |[39m       public_key[33m:[39m uint8ArrayToBase64url(credential[33m.[39mpublicKey)[33m,[39m[0m
+00:27:58.451 [0m [90m 97 |[39m       counter[33m:[39m credential[33m.[39mcounter[33m,[39m[0m
+00:27:58.451 [0m [90m 98 |[39m       device_name[33m:[39m deviceName [33m||[39m credentialDeviceType [33m||[39m [32m'Unknown Device'[39m[33m,[39m[0m
+00:27:58.539 Next.js build worker exited with code: 1 and signal: null
+00:27:58.562 Error: Command "npm run build" exited with 1

@@ -92,8 +92,8 @@ export async function verifyAndSaveRegistration(
     .from('webauthn_credentials')
     .insert({
       user_id: userId,
-      credential_id: uint8ArrayToBase64url(credential.id),
-      public_key: uint8ArrayToBase64url(credential.publicKey),
+      credential_id: typeof credential.id === 'string' ? credential.id : uint8ArrayToBase64url(credential.id),
+      public_key: typeof credential.publicKey === 'string' ? credential.publicKey : uint8ArrayToBase64url(credential.publicKey),
       counter: credential.counter,
       device_name: deviceName || credentialDeviceType || 'Unknown Device',
       transports: response.response.transports || [],
