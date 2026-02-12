@@ -35,6 +35,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  is_active: boolean;
   created_at: string;
   last_login: string;
 }
@@ -64,6 +65,9 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', pin: '', role: 'user' });
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', pin: '', role: 'user' });
+  const [userActionLoading, setUserActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     loadSystemStats();
@@ -132,6 +136,70 @@ export default function AdminPage() {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to delete user' });
+    }
+  }
+
+  function startEditUser(user: User) {
+    setEditingUser(user.id);
+    setEditForm({ name: user.name, email: user.email || '', pin: '', role: user.role });
+  }
+
+  async function saveEditUser() {
+    if (!editingUser) return;
+
+    const updates: Record<string, any> = { id: editingUser };
+    if (editForm.name) updates.name = editForm.name;
+    if (editForm.email !== undefined) updates.email = editForm.email;
+    if (editForm.role) updates.role = editForm.role;
+    if (editForm.pin) {
+      if (editForm.pin.length !== 4 || !/^\d{4}$/.test(editForm.pin)) {
+        setMessage({ type: 'error', text: 'PIN must be exactly 4 digits' });
+        return;
+      }
+      updates.pin = editForm.pin;
+    }
+
+    setUserActionLoading(editingUser);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({ type: 'success', text: 'User updated successfully!' });
+        setEditingUser(null);
+        loadUsers();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update user' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update user' });
+    } finally {
+      setUserActionLoading(null);
+    }
+  }
+
+  async function toggleUserActive(user: User) {
+    setUserActionLoading(user.id);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, is_active: !user.is_active })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({ type: 'success', text: `User ${user.is_active ? 'deactivated' : 'activated'}` });
+        loadUsers();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update user' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update user' });
+    } finally {
+      setUserActionLoading(null);
     }
   }
 
@@ -535,12 +603,14 @@ export default function AdminPage() {
                   <label className="block text-sm text-gray-400 mb-1">4-Digit PIN *</label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={newUser.pin}
                     onChange={(e) => setNewUser({ ...newUser, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                     className="input w-full"
                     placeholder="Enter 4-digit PIN"
                     maxLength={4}
                   />
+                  <p className="text-xs text-gray-500 mt-1">Must be unique across all active users</p>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Role</label>
@@ -565,67 +635,143 @@ export default function AdminPage() {
             </div>
           )}
 
-          <div className="card">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-3 px-4 font-medium text-gray-400">Name</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-400">Email</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-400">Role</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-400">Last Login</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-gray-400">
-                        No users found. Click "Add User" to create one.
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((user) => (
-                      <tr key={user.id} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                              <span className="text-sm font-bold text-primary">
-                                {user.name?.charAt(0).toUpperCase() || 'U'}
-                              </span>
-                            </div>
-                            {user.name}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-400">{user.email || '-'}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'admin' 
-                              ? 'bg-purple-500/20 text-purple-400' 
-                              : 'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-gray-400">
-                          {user.last_login 
-                            ? new Date(user.last_login).toLocaleDateString() 
-                            : 'Never'}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => deleteUser(user.id)}
-                            className="btn btn-secondary btn-sm text-red-400"
+          <div className="space-y-3">
+            {users.length === 0 ? (
+              <div className="card">
+                <p className="text-gray-400 text-center py-8">No users found. Click &quot;Add User&quot; to create one.</p>
+              </div>
+            ) : (
+              users.map((user) => (
+                <div key={user.id} className={`card ${!user.is_active ? 'opacity-60' : ''}`}>
+                  {editingUser === user.id ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold">Edit User</h4>
+                        <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-white">
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            className="input w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Email</label>
+                          <input
+                            type="email"
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                            className="input w-full"
+                            placeholder="Optional"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">New PIN (leave blank to keep current)</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={editForm.pin}
+                            onChange={(e) => setEditForm({ ...editForm, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                            className="input w-full"
+                            placeholder="Enter new 4-digit PIN"
+                            maxLength={4}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Role</label>
+                          <select
+                            value={editForm.role}
+                            onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                            className="input w-full"
                           >
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={saveEditUser}
+                          disabled={userActionLoading === user.id}
+                          className="btn btn-primary"
+                        >
+                          {userActionLoading === user.id ? 'Saving...' : 'Save Changes'}
+                        </button>
+                        <button onClick={() => setEditingUser(null)} className="btn btn-secondary">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user.is_active ? 'bg-primary/20' : 'bg-gray-500/20'}`}>
+                          <span className={`text-sm font-bold ${user.is_active ? 'text-primary' : 'text-gray-400'}`}>
+                            {user.name?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{user.name}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              user.role === 'admin'
+                                ? 'bg-purple-500/20 text-purple-400'
+                                : 'bg-blue-500/20 text-blue-400'
+                            }`}>
+                              {user.role}
+                            </span>
+                            {!user.is_active && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400">
+                            {user.email || 'No email'}
+                            {' · '}
+                            {user.last_login
+                              ? `Last login: ${new Date(user.last_login).toLocaleDateString()}`
+                              : 'Never logged in'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleUserActive(user)}
+                          disabled={userActionLoading === user.id}
+                          className={`btn btn-secondary btn-sm ${user.is_active ? 'text-amber-400' : 'text-emerald-400'}`}
+                          title={user.is_active ? 'Deactivate user' : 'Activate user'}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {user.is_active ? 'person_off' : 'person'}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => startEditUser(user)}
+                          className="btn btn-secondary btn-sm"
+                          title="Edit user"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="btn btn-secondary btn-sm text-red-400"
+                          title="Delete user"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
