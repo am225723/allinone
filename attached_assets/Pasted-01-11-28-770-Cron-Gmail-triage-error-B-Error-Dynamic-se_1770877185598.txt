@@ -1,0 +1,42 @@
+01:11:28.770 Cron Gmail triage error: B [Error]: Dynamic server usage: Route /api/cron/gmail-triage couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+01:11:28.770     at V (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:21778)
+01:11:28.770     at Object.get (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:29465)
+01:11:28.770     at c (/vercel/path0/.next/server/app/api/cron/gmail-triage/route.js:1:543)
+01:11:28.770     at /vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38417
+01:11:28.771     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+01:11:28.771     at NoopContextManager.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+01:11:28.771     at ContextAPI.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+01:11:28.771     at NoopTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+01:11:28.771     at ProxyTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+01:11:28.771     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:122:103 {
+01:11:28.771   description: "Route /api/cron/gmail-triage couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+01:11:28.771   digest: 'DYNAMIC_SERVER_USAGE'
+01:11:28.772 }
+01:11:28.772 Cron daily summary error: B [Error]: Dynamic server usage: Route /api/cron/daily-summary couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+01:11:28.772     at V (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:21778)
+01:11:28.772     at Object.get (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:29465)
+01:11:28.772     at u (/vercel/path0/.next/server/app/api/cron/daily-summary/route.js:1:543)
+01:11:28.772     at /vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38417
+01:11:28.772     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+01:11:28.772     at NoopContextManager.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+01:11:28.772     at ContextAPI.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+01:11:28.772     at NoopTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+01:11:28.772     at ProxyTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+01:11:28.773     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:122:103 {
+01:11:28.773   description: "Route /api/cron/daily-summary couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+01:11:28.773   digest: 'DYNAMIC_SERVER_USAGE'
+01:11:28.773 }
+01:11:28.933 Note reminders cron error: B [Error]: Dynamic server usage: Route /api/cron/note-reminders couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+01:11:28.934     at V (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:21778)
+01:11:28.935     at Object.get (/vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:29465)
+01:11:28.936     at d (/vercel/path0/.next/server/app/api/cron/note-reminders/route.js:1:542)
+01:11:28.936     at /vercel/path0/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38417
+01:11:28.936     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+01:11:28.936     at NoopContextManager.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+01:11:28.936     at ContextAPI.with (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+01:11:28.938     at NoopTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+01:11:28.938     at ProxyTracer.startActiveSpan (/vercel/path0/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+01:11:28.938     at /vercel/path0/node_modules/next/dist/server/lib/trace/tracer.js:122:103 {
+01:11:28.938   description: "Route /api/cron/note-reminders couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+01:11:28.938   digest: 'DYNAMIC_SERVER_USAGE'
+01:11:28.938 }
