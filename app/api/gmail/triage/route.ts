@@ -36,8 +36,8 @@ function shouldSkipBySummarySubject(subject: string) {
 
 type AgentRule = {
   id: string;
-  gmail_account_id: string;
-  rule_type: 'skip_sender' | 'skip_subject';
+  gmail_account_id: string | null;
+  rule_type: 'skip_sender' | 'skip_subject' | 'skip_domain';
   pattern: string;
   is_enabled: boolean;
 };
@@ -49,6 +49,7 @@ function matchRules(params: {
 }): { skip: boolean; reason: string } {
   const from = params.fromEmail.toLowerCase();
   const subject = (params.subject || '').toLowerCase();
+  const domain = from.includes('@') ? from.split('@')[1] : '';
 
   const enabled = params.rules.filter((r) => r.is_enabled);
 
@@ -57,6 +58,13 @@ function matchRules(params: {
   );
   if (senderRule) {
     return { skip: true, reason: `Skipped (rule): sender "${from}"` };
+  }
+
+  const domainRule = enabled.find(
+    (r) => r.rule_type === 'skip_domain' && domain.endsWith(r.pattern.trim().toLowerCase())
+  );
+  if (domainRule) {
+    return { skip: true, reason: `Skipped (rule): domain "${domain}" matched "${domainRule.pattern}"` };
   }
 
   const subjRule = enabled.find(
@@ -78,8 +86,8 @@ async function getRulesForAccount(gmailAccountId: string): Promise<AgentRule[]> 
   const { data, error } = await supabaseServer
     .from('agent_rules')
     .select('id,gmail_account_id,rule_type,pattern,is_enabled')
-    .eq('gmail_account_id', gmailAccountId)
-    .eq('is_enabled', true);
+    .eq('is_enabled', true)
+    .or(`gmail_account_id.eq.${gmailAccountId},gmail_account_id.is.null`);
 
   if (error) {
     console.error('Failed loading agent rules', error);

@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+type CalendarEntry = {
+  url: string;
+  name: string;
+  color: string;
+  enabled: boolean;
+};
+
 type CalendarEvent = {
   id: string;
   start: Date;
@@ -10,6 +17,8 @@ type CalendarEvent = {
   description?: string;
   location?: string;
   color?: string;
+  calendarName?: string;
+  calendarColor?: string;
   client?: {
     name?: string;
     dob?: string;
@@ -174,6 +183,13 @@ export default function PatientsPage() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [savedCalendars, setSavedCalendars] = useState<CalendarEntry[]>([]);
+  const [newCalName, setNewCalName] = useState('');
+  const [newCalUrl, setNewCalUrl] = useState('');
+  const [newCalColor, setNewCalColor] = useState('#3b82f6');
+  const [savingCalendars, setSavingCalendars] = useState(false);
+  const [calendarReloadKey, setCalendarReloadKey] = useState(0);
+  const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
   const slots = useMemo(() => generateTimeSlots(), []);
 
@@ -221,7 +237,12 @@ export default function PatientsPage() {
         const urlsRes = await fetch('/api/calendar/urls');
         const urlsData = await urlsRes.json();
 
-        if (!urlsData.ok || !urlsData.urls || urlsData.urls.length === 0) {
+        const calendars: CalendarEntry[] = urlsData.calendars || [];
+        setSavedCalendars(calendars);
+
+        const enabledCalendars = calendars.filter(c => c.enabled);
+
+        if (enabledCalendars.length === 0) {
           setEvents([]);
           setSelectedEventId(null);
           setCalendarLoading(false);
@@ -230,10 +251,10 @@ export default function PatientsPage() {
 
         const allEvents: CalendarEvent[] = [];
 
-        for (const url of urlsData.urls) {
+        for (const cal of enabledCalendars) {
           try {
             const importRes = await fetch(
-              `/api/calendar/import?url=${encodeURIComponent(url)}&offset=${tzOffsetMins}`
+              `/api/calendar/import?url=${encodeURIComponent(cal.url)}&offset=${tzOffsetMins}`
             );
             const importData = await importRes.json();
 
@@ -242,18 +263,26 @@ export default function PatientsPage() {
                 ...e,
                 start: new Date(e.start),
                 end: new Date(e.end),
+                calendarName: cal.name,
+                calendarColor: cal.color,
               })) as CalendarEvent[];
               allEvents.push(...parsed);
             }
           } catch (e) {
-            console.error(`Failed to import calendar from ${url}:`, e);
+            console.error(`Failed to import calendar from ${cal.url}:`, e);
           }
         }
 
         allEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
         setEvents(allEvents);
-        setSelectedEventId(allEvents[0]?.id || null);
-        if (allEvents[0]) setSelectedDay(startOfDay(allEvents[0].start));
+        const todayEvents = allEvents.filter(e => sameDay(e.start, new Date()));
+        if (todayEvents.length > 0) {
+          setSelectedEventId(todayEvents[0].id);
+          setSelectedDay(startOfDay(new Date()));
+        } else if (allEvents.length > 0) {
+          setSelectedEventId(allEvents[0].id);
+          setSelectedDay(startOfDay(allEvents[0].start));
+        }
       } catch (e) {
         console.error('Failed to load calendar events:', e);
         setEvents([]);
@@ -264,7 +293,26 @@ export default function PatientsPage() {
     }
 
     loadCalendarEvents();
-  }, [tzOffsetMins]);
+  }, [tzOffsetMins, calendarReloadKey]);
+
+  async function persistCalendars(cals: CalendarEntry[]) {
+    setSavingCalendars(true);
+    try {
+      const res = await fetch('/api/calendar/urls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calendars: cals }),
+      });
+      if (res.ok) {
+        setSavedCalendars(cals);
+        setCalendarReloadKey(k => k + 1);
+      }
+    } catch (e) {
+      console.error('Failed to save calendars:', e);
+    } finally {
+      setSavingCalendars(false);
+    }
+  }
 
   async function importFromUrl() {
     setImportError(null);
@@ -277,14 +325,17 @@ export default function PatientsPage() {
       const res = await fetch(`/api/calendar/import?url=${encodeURIComponent(calendarUrl.trim())}&offset=${tzOffsetMins}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Import failed');
-      const parsed = (data.events || []).map((e: any) => ({
-        ...e,
-        start: new Date(e.start),
-        end: new Date(e.end),
-      })) as CalendarEvent[];
-      setEvents(parsed);
-      setSelectedEventId(parsed[0]?.id || null);
-      if (parsed[0]) setSelectedDay(startOfDay(parsed[0].start));
+
+      const newCal: CalendarEntry = {
+        url: calendarUrl.trim(),
+        name: `Calendar ${savedCalendars.length + 1}`,
+        color: PRESET_COLORS[savedCalendars.length % PRESET_COLORS.length],
+        enabled: true,
+      };
+      const updated = [...savedCalendars, newCal];
+      await persistCalendars(updated);
+      setCalendarUrl('');
+      setShowImportPanel(false);
     } catch (e: any) {
       setImportError(e?.message || 'Unable to import calendar');
     } finally {
@@ -565,23 +616,24 @@ export default function PatientsPage() {
                   const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
                   const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
                   
-                  const bgColor = isIntake ? 'bg-red-500' : 'bg-blue-500';
-                  const borderColor = isIntake ? 'border-red-400' : 'border-blue-400';
-                  const textSecondary = isIntake ? 'text-red-100' : 'text-blue-100';
+                  const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
 
                   return (
                     <button
                       key={ev.id}
                       onClick={() => setSelectedEventId(ev.id)}
-                      className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${bgColor} ${borderColor} ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
-                      style={{ top: `${top}px`, height: `${height}px` }}
+                      className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                      style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
                     >
                       <div className="flex justify-between items-start text-white">
                         <div className="min-w-0">
                           <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
-                          <p className={`text-xs mt-0.5 ${textSecondary}`}>
+                          <p className="text-xs mt-0.5 text-white/80">
                             {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
                           </p>
+                          {ev.calendarName && (
+                            <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
+                          )}
                         </div>
                         <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
                           {isTelehealth ? 'videocam' : 'assignment_ind'}
@@ -612,6 +664,14 @@ export default function PatientsPage() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              {/* Calendar Source */}
+              {selectedEvent.calendarName && (
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg mb-1">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selectedEvent.calendarColor || '#3b82f6' }} />
+                  <span className="text-xs text-gray-400">{selectedEvent.calendarName}</span>
+                </div>
+              )}
+
               {/* Patient Name */}
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Patient Name</label>
@@ -767,16 +827,13 @@ export default function PatientsPage() {
                 <span className="text-xs">{day.getDate()}</span>
                 {hasEvents && (
                   <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
-                    {dayEvents.slice(0, 3).map((ev, i) => {
-                      const summaryLower = (ev.summary || '').toLowerCase();
-                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
-                      return (
-                        <div
-                          key={i}
-                          className={`w-1.5 h-1.5 rounded-full ${isIntake ? 'bg-red-500' : 'bg-blue-500'}`}
-                        />
-                      );
-                    })}
+                    {dayEvents.slice(0, 3).map((ev, i) => (
+                      <div
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: ev.calendarColor || '#3b82f6' }}
+                      />
+                    ))}
                     {dayEvents.length > 3 && (
                       <span className="text-[8px] text-gray-400">+{dayEvents.length - 3}</span>
                     )}
@@ -803,6 +860,17 @@ export default function PatientsPage() {
             Next Month <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
         </div>
+
+        {savedCalendars.filter(c => c.enabled).length > 1 && (
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-white/5">
+            {savedCalendars.filter(c => c.enabled).map((cal, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cal.color }} />
+                <span className="text-xs text-gray-400">{cal.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Settings Modal */}
@@ -817,102 +885,180 @@ export default function PatientsPage() {
             </div>
 
             <div className="p-4 space-y-6">
-              {/* Import Section */}
+              {/* Saved Calendars */}
               <div>
                 <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-blue-400">upload</span>
-                  Import Calendar
+                  <span className="material-symbols-outlined text-blue-400">event</span>
+                  Connected Calendars ({savedCalendars.length})
+                </h4>
+                {savedCalendars.length === 0 ? (
+                  <div className="p-4 bg-white/5 rounded-lg text-center text-gray-400 text-sm">
+                    No calendars connected. Add one below.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {savedCalendars.map((cal, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg group">
+                        <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: cal.color }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{cal.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{cal.url}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const updated = [...savedCalendars];
+                            updated[idx] = { ...updated[idx], enabled: !updated[idx].enabled };
+                            persistCalendars(updated);
+                          }}
+                          className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ${cal.enabled ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                        >
+                          <div className={`w-4 h-4 rounded-full bg-white transition-transform ${cal.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const updated = savedCalendars.filter((_, i) => i !== idx);
+                            persistCalendars(updated);
+                          }}
+                          className="p-1 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {savingCalendars && (
+                  <p className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                    Saving...
+                  </p>
+                )}
+              </div>
+
+              {/* Add New Calendar */}
+              <div>
+                <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-400">add_circle</span>
+                  Add Calendar
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Import from URL</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Calendar Name</label>
+                    <input
+                      value={newCalName}
+                      onChange={(e) => setNewCalName(e.target.value)}
+                      placeholder="Work Calendar"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">iCal URL</label>
+                    <input
+                      value={newCalUrl}
+                      onChange={(e) => setNewCalUrl(e.target.value)}
+                      placeholder="https://.../calendar.ics"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Color</label>
                     <div className="flex gap-2">
-                      <input
-                        value={calendarUrl}
-                        onChange={(e) => setCalendarUrl(e.target.value)}
-                        placeholder="https://.../calendar.ics"
-                        className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-                      />
-                      <button onClick={importFromUrl} disabled={importing} className="btn btn-primary text-sm px-3">
-                        {importing ? 'Loading...' : 'Import'}
-                      </button>
+                      {PRESET_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setNewCalColor(c)}
+                          className={`w-7 h-7 rounded-full transition-all ${newCalColor === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1d24] scale-110' : 'hover:scale-105'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Or upload .ics file</label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".ics,text/calendar"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) importFromFile(f);
-                      }}
-                    />
-                    <button
-                      className="btn btn-secondary w-full text-sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={importing}
-                    >
-                      Choose file
-                    </button>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Timezone correction: {tzOffsetMins >= 0 ? '+' : ''}{tzOffsetMins} minutes</label>
-                    <input
-                      type="range"
-                      min={-720}
-                      max={720}
-                      step={15}
-                      value={tzOffsetMins}
-                      onChange={(e) => setTzOffsetMins(Number(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!newCalUrl.trim()) return;
+                      const updated = [...savedCalendars, {
+                        url: newCalUrl.trim(),
+                        name: newCalName.trim() || `Calendar ${savedCalendars.length + 1}`,
+                        color: newCalColor,
+                        enabled: true,
+                      }];
+                      await persistCalendars(updated);
+                      setNewCalName('');
+                      setNewCalUrl('');
+                      setNewCalColor(PRESET_COLORS[(updated.length) % PRESET_COLORS.length]);
+                    }}
+                    disabled={!newCalUrl.trim() || savingCalendars}
+                    className="w-full py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    Add Calendar
+                  </button>
                 </div>
               </div>
 
-              {/* Color Coding */}
+              {/* Upload ICS File */}
               <div>
                 <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-purple-400">palette</span>
-                  Color Coding
+                  <span className="material-symbols-outlined text-purple-400">upload_file</span>
+                  Upload .ics File
                 </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
-                    <div className="w-4 h-4 rounded bg-blue-500"></div>
-                    <span className="text-sm text-gray-300 flex-1">Telehealth / Follow-up</span>
-                    <span className="text-xs text-gray-500">Default</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
-                    <div className="w-4 h-4 rounded bg-red-500"></div>
-                    <span className="text-sm text-gray-300 flex-1">Intake / Evaluation / Assessment</span>
-                    <span className="text-xs text-gray-500">Keywords</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Colors are automatically assigned based on appointment title keywords.
-                  </p>
-                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".ics,text/calendar"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) importFromFile(f);
+                  }}
+                />
+                <button
+                  className="w-full py-2 bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 rounded-lg text-sm transition"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                >
+                  {importing ? 'Importing...' : 'Choose .ics file'}
+                </button>
               </div>
 
-              {/* Display Options */}
+              {/* Timezone */}
               <div>
                 <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-400">tune</span>
-                  Display Options
+                  <span className="material-symbols-outlined text-amber-400">schedule</span>
+                  Timezone Correction
                 </h4>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
-                    <span className="text-sm text-gray-300">Show appointment location</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
-                    <span className="text-sm text-gray-300">Show time on calendar dots</span>
-                  </label>
-                </div>
+                <label className="text-xs text-gray-400 mb-1 block">
+                  Offset: {tzOffsetMins >= 0 ? '+' : ''}{Math.round(tzOffsetMins)} minutes
+                </label>
+                <input
+                  type="range"
+                  min={-720}
+                  max={720}
+                  step={15}
+                  value={tzOffsetMins}
+                  onChange={(e) => setTzOffsetMins(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
+
+              {/* Calendar Legend */}
+              {savedCalendars.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-purple-400">palette</span>
+                    Calendar Legend
+                  </h4>
+                  <div className="space-y-1.5">
+                    {savedCalendars.filter(c => c.enabled).map((cal, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cal.color }} />
+                        <span className="text-sm text-gray-300">{cal.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {importError && (

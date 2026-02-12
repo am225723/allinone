@@ -5,11 +5,20 @@ export const runtime = 'edge';
 
 export async function GET() {
   try {
-    const { data } = await supabaseServer
-      .from('app_settings')
-      .select('*')
-      .eq('category', 'openphone')
-      .single();
+    const [settingsResult, suppressionsResult] = await Promise.all([
+      supabaseServer
+        .from('app_settings')
+        .select('*')
+        .eq('category', 'openphone')
+        .single(),
+      supabaseServer
+        .from('suppressions')
+        .select('*')
+        .order('created_at', { ascending: false }),
+    ]);
+
+    const data = settingsResult.data;
+    const suppressions = suppressionsResult.data || [];
 
     return NextResponse.json({
       apiKey: data?.api_key ? '••••••••' : '',
@@ -17,7 +26,8 @@ export async function GET() {
       maxConversations: data?.max_conversations || 25,
       blockedPhones: data?.blocked_phones || '',
       blockedPhrases: data?.blocked_phrases || '',
-      customSignature: data?.custom_signature || ''
+      customSignature: data?.custom_signature || '',
+      suppressions,
     });
   } catch (error) {
     return NextResponse.json({
@@ -26,7 +36,8 @@ export async function GET() {
       maxConversations: 25,
       blockedPhones: '',
       blockedPhrases: '',
-      customSignature: ''
+      customSignature: '',
+      suppressions: [],
     });
   }
 }
