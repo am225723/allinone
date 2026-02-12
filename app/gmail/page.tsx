@@ -6,7 +6,7 @@ import Link from 'next/link';
 interface GmailAccount {
   email: string;
   name: string | null;
-  is_active: boolean;
+  is_active?: boolean;
   last_sync_at: string | null;
   sync_error: string | null;
 }
@@ -36,17 +36,19 @@ export default function GmailPage() {
       const syncData = await syncRes.json();
       const statsData = await statsRes.json();
 
-      if (syncData.ok) setAccounts(syncData.accounts || []);
+      const allAccounts = syncData.ok ? (syncData.accounts || []) : [];
+      const activeAccounts = allAccounts.filter((a: GmailAccount) => a.is_active !== false);
+      setAccounts(allAccounts);
 
       if (statsData.ok && statsData.stats?.gmail) {
         setStats({
-          connectedAccounts: syncData.accounts?.length || 0,
+          connectedAccounts: activeAccounts.length,
           emailsProcessed: statsData.stats.gmail.processed || 0,
           highPriority: statsData.stats.gmail.highPriority || 0,
           lastTriage: statsData.stats.gmail.lastTriage || null,
         });
       } else {
-        setStats(prev => ({ ...prev, connectedAccounts: syncData.accounts?.length || 0 }));
+        setStats(prev => ({ ...prev, connectedAccounts: activeAccounts.length }));
       }
 
       try {
