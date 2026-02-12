@@ -89,6 +89,13 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - 2026-02-03: Added manual patient linking with search dropdown when no appointment selected
 - 2026-02-03: Added Template creation in Template Settings (custom templates with sections)
 - 2026-02-03: Added Google Drive file import in Session Inputs (alongside local upload)
+- 2026-02-12: Fixed Gmail rules API - column mapping (rule_type/is_enabled/gmail_account_id) now matches agent_rules table schema
+- 2026-02-12: Added domain-level skip rules (skip_domain) for Gmail triage alongside existing sender/subject rules
+- 2026-02-12: Created unified skip/suppression rules page (/gmail/rules) with tabs for Gmail rules and SMS suppressions
+- 2026-02-12: Redesigned calendar management with named calendars, custom colors, enable/disable toggles, and auto-save
+- 2026-02-12: Calendar API now returns CalendarEntry objects {url, name, color, enabled}, backwards compatible with old string arrays
+- 2026-02-12: Calendar events show source calendar name and use calendar color for event blocks and month view dots
+- 2026-02-12: Calendar legend appears in month view when multiple calendars are connected
 - 2026-02-03: Added "Save to Patient Folder" button that exports PDF to correct patient folder on Google Drive
 - 2026-02-10: Fixed Gmail OAuth redirect_uri mismatch - created /api/auth/google-callback route matching Google Cloud Console registration
 - 2026-02-10: Set GOOGLE_REDIRECT_URI env var to https://agent.drz.services/api/auth/google-callback
