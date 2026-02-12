@@ -203,15 +203,27 @@ export async function ensureLabels(
 
   for (const name of labelNames) {
     if (!nameToId[name]) {
-      const created = await gmail.users.labels.create({
-        userId: 'me',
-        requestBody: {
-          name,
-          labelListVisibility: 'labelShow',
-          messageListVisibility: 'show',
-        },
-      });
-      if (created.data.id) nameToId[name] = created.data.id;
+      try {
+        const created = await gmail.users.labels.create({
+          userId: 'me',
+          requestBody: {
+            name,
+            labelListVisibility: 'labelShow',
+            messageListVisibility: 'show',
+          },
+        });
+        if (created.data.id) nameToId[name] = created.data.id;
+      } catch (err: any) {
+        if (err?.code === 409 || err?.status === 409 || err?.message?.includes('already exists')) {
+          const refreshed = await gmail.users.labels.list({ userId: 'me' });
+          const found = (refreshed.data.labels || []).find(
+            (l: any) => l.name?.toLowerCase() === name.toLowerCase()
+          );
+          if (found?.id) nameToId[name] = found.id;
+        } else {
+          console.error(`Failed to create label "${name}":`, err?.message || err);
+        }
+      }
     }
   }
 

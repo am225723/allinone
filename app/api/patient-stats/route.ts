@@ -85,7 +85,21 @@ async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
 
     if (!data?.value) return [];
 
-    const urls: string[] = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
+    let raw = data.value;
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); } catch { return []; }
+    }
+    if (!Array.isArray(raw)) return [];
+
+    const urls: string[] = raw
+      .filter((item: any) => {
+        if (typeof item === 'string') return true;
+        if (item && typeof item === 'object') return item.enabled !== false;
+        return false;
+      })
+      .map((item: any) => typeof item === 'string' ? item : item.url)
+      .filter(Boolean);
+
     const allEvents: CalendarEvent[] = [];
 
     for (const url of urls) {

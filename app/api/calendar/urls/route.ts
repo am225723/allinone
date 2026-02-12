@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 type CalendarEntry = {
   url: string;
   name: string;
@@ -15,7 +13,12 @@ const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '
 function normalizeCalendars(raw: any): CalendarEntry[] {
   if (!raw) return [];
 
-  const arr = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+  let arr: any[];
+  try {
+    arr = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : []);
+  } catch {
+    return [];
+  }
 
   return arr.map((item: any, idx: number) => {
     if (typeof item === 'string') {
@@ -35,21 +38,57 @@ function normalizeCalendars(raw: any): CalendarEntry[] {
   }).filter((c: CalendarEntry) => c.url.length > 0);
 }
 
+async function loadExisting(): Promise<{ id: string | null; calendars: CalendarEntry[] }> {
+  const { data, error } = await supabaseServer
+    .from('app_settings')
+    .select('id, value')
+    .eq('key', 'calendar_urls')
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('Error loading calendar settings:', error);
+    return { id: null, calendars: [] };
+  }
+
+  const row = data?.[0];
+  return {
+    id: row?.id || null,
+    calendars: normalizeCalendars(row?.value),
+  };
+}
+
+async function saveCalendars(calendars: CalendarEntry[], existingId: string | null): Promise<void> {
+  const valuePayload = calendars as any;
+  if (existingId) {
+    const { error } = await supabaseServer
+      .from('app_settings')
+      .update({ value: valuePayload })
+      .eq('id', existingId);
+    if (error) {
+      const { error: error2 } = await supabaseServer
+        .from('app_settings')
+        .update({ value: JSON.stringify(calendars) })
+        .eq('id', existingId);
+      if (error2) throw error2;
+    }
+  } else {
+    const { error } = await supabaseServer
+      .from('app_settings')
+      .insert({ key: 'calendar_urls', value: valuePayload });
+    if (error) {
+      const { error: error2 } = await supabaseServer
+        .from('app_settings')
+        .insert({ key: 'calendar_urls', value: JSON.stringify(calendars) });
+      if (error2) throw error2;
+    }
+  }
+}
+
 export async function GET() {
   try {
-    const { data, error } = await supabaseServer
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'calendar_urls')
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    const calendars = normalizeCalendars(data?.value);
+    const { calendars } = await loadExisting();
     const urls = calendars.map(c => c.url);
-
     return NextResponse.json({ ok: true, urls, calendars });
   } catch (error: any) {
     console.error('Error fetching calendar URLs:', error);
@@ -60,9 +99,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const { id: existingId } = await loadExisting();
+
+    let calendars: CalendarEntry[];
 
     if (body.calendars && Array.isArray(body.calendars)) {
-      const calendars: CalendarEntry[] = body.calendars
+      calendars = body.calendars
         .filter((c: any) => c.url && typeof c.url === 'string' && c.url.trim().length > 0)
         .map((c: any, idx: number) => ({
           url: c.url.trim(),
@@ -70,37 +112,15 @@ export async function POST(request: NextRequest) {
           color: c.color || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
           enabled: c.enabled !== false,
         }));
-
-      const { error } = await supabaseServer
-        .from('app_settings')
-        .upsert({
-          key: 'calendar_urls',
-          value: calendars,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'key' });
-
-      if (error) throw error;
-
-      return NextResponse.json({ ok: true, calendars, urls: calendars.map(c => c.url) });
+    } else if (body.urls && Array.isArray(body.urls)) {
+      calendars = normalizeCalendars(body.urls);
+    } else {
+      return NextResponse.json({ ok: false, error: 'Provide calendars or urls array' }, { status: 400 });
     }
 
-    if (body.urls && Array.isArray(body.urls)) {
-      const calendars = normalizeCalendars(body.urls);
+    await saveCalendars(calendars, existingId);
 
-      const { error } = await supabaseServer
-        .from('app_settings')
-        .upsert({
-          key: 'calendar_urls',
-          value: calendars,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'key' });
-
-      if (error) throw error;
-
-      return NextResponse.json({ ok: true, calendars, urls: calendars.map(c => c.url) });
-    }
-
-    return NextResponse.json({ ok: false, error: 'Provide calendars or urls array' }, { status: 400 });
+    return NextResponse.json({ ok: true, calendars, urls: calendars.map(c => c.url) });
   } catch (error: any) {
     console.error('Error saving calendar URLs:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
