@@ -294,6 +294,25 @@ export default function DashboardHome() {
     }
   };
 
+  function getMetricLink(metricKey: string): string {
+    switch (metricKey) {
+      case 'pendingNotes': return '/noteai';
+      case 'appointments': return '/patients';
+      case 'appointmentsToday': return '/patients';
+      case 'totalComms': return '/openphone';
+      case 'responseRate': return '/admin';
+      case 'unreadEmails': return '/gmail';
+      case 'todaysEmails': return '/gmail/activity';
+      case 'todaysMessages': return '/openphone';
+      case 'todaysCalls': return '/openphone';
+      case 'activeToday': return '/admin';
+      case 'pendingTasks': return '/tasks';
+      case 'tasksToday': return '/tasks';
+      case 'highPriority': return '/gmail/activity';
+      default: return '/';
+    }
+  }
+
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
       case 'urgent': return 'Urgent';
@@ -376,14 +395,14 @@ export default function DashboardHome() {
               >
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
                   <button
-                    onClick={() => setEditingCardId(editingCardId === card.id ? null : card.id)}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingCardId(editingCardId === card.id ? null : card.id); }}
                     className="p-1 rounded-lg hover:bg-black/20 transition-all"
                     title="Edit metric"
                   >
                     <span className="material-symbols-outlined text-white/50 text-sm">edit</span>
                   </button>
                   <button
-                    onClick={() => removeStatCard(card.id)}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeStatCard(card.id); }}
                     className="p-1 rounded-lg hover:bg-black/20 transition-all"
                     title="Remove card"
                   >
@@ -398,7 +417,7 @@ export default function DashboardHome() {
                       {availableMetrics.map((metric) => (
                         <button
                           key={metric.key}
-                          onClick={() => changeCardMetric(card.id, metric.key)}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeCardMetric(card.id, metric.key); }}
                           className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-colors ${
                             card.metricKey === metric.key 
                               ? 'bg-blue-500/20 text-blue-400' 
@@ -413,13 +432,15 @@ export default function DashboardHome() {
                   </div>
                 )}
                 
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-white/60 mb-1">{card.label}</p>
-                    <p className="text-3xl font-bold text-white">{card.value}</p>
+                <Link href={getMetricLink(card.metricKey)} className="block">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-white/60 mb-1">{card.label}</p>
+                      <p className="text-3xl font-bold text-white">{card.value}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-white/30 text-2xl">{card.icon}</span>
                   </div>
-                  <span className="material-symbols-outlined text-white/30 text-2xl">{card.icon}</span>
-                </div>
+                </Link>
               </div>
             ))}
             
@@ -731,42 +752,42 @@ export default function DashboardHome() {
           {/* Performance with Glow */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wide mb-3">Performance</h3>
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-emerald-300/70">Weekly Goal</span>
-                <span className="text-sm font-medium text-white">75%</span>
+            <Link href="/admin" className="block p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 shadow-lg shadow-emerald-500/10 hover:border-emerald-500/30 transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-emerald-300/70">Today&apos;s Activity</span>
               </div>
-              <div className="h-2.5 bg-white/10 rounded-full overflow-hidden mb-4">
-                <div className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full shadow-lg shadow-emerald-500/30" style={{ width: '75%' }}></div>
-              </div>
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-2xl font-bold text-white">{stats?.overall.activeToday || 0}</p>
-                  <p className="text-xs text-emerald-300/50">Actions</p>
+                  <p className="text-xs text-emerald-300/50">Actions Today</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-emerald-400">+12%</p>
-                  <p className="text-xs text-emerald-300/50">vs last week</p>
+                <div>
+                  <p className="text-2xl font-bold text-white">{stats?.overall.responseRate || 0}%</p>
+                  <p className="text-xs text-emerald-300/50">Response Rate</p>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Upcoming with Glow */}
           <div>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Upcoming</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-500/20 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-cyan-400 leading-none">12</p>
+              {patientStats?.nextAppointment ? (
+                <Link href="/patients" className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 shadow-lg shadow-cyan-500/10 hover:border-cyan-500/30 transition-colors">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-500/20 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <span className="material-symbols-outlined text-cyan-400">event</span>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-sm truncate">{patientStats.nextAppointment.summary}</p>
+                    <p className="text-xs text-cyan-300/50">{patientStats.nextAppointment.time}</p>
+                  </div>
+                </Link>
+              ) : (
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20">
+                  <p className="text-xs text-cyan-300/50 text-center">No upcoming appointments</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white text-sm">Team Sync</p>
-                  <p className="text-xs text-cyan-300/50">10:00 AM - 11:00 AM</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
