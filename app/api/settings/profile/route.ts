@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 export async function GET(request: NextRequest) {
   try {
     const pinCookie = request.cookies.get('pin_authenticated');
@@ -14,40 +12,47 @@ export async function GET(request: NextRequest) {
 
     const userId = userIdCookie.value;
 
-    if (userId === 'default') {
-      return NextResponse.json({
-        ok: true,
-        profile: {
-          name: 'Default User',
-          email: 'user@example.com',
-          phone: '',
-          timezone: 'UTC'
-        }
-      });
-    }
+    let profile: any = {
+      name: 'Default User',
+      email: 'user@example.com',
+      phone: '',
+      timezone: 'America/New_York',
+      sentimentReport: '',
+    };
 
-    // Fetch basic profile info
-    const { data, error } = await supabaseServer
-      .from('comm_users')
-      .select('name, email')
-      .eq('id', userId)
-      .single();
+    if (userId !== 'default') {
+      const { data } = await supabaseServer
+        .from('comm_users')
+        .select('name, email')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return NextResponse.json({ ok: false, error: 'Failed to fetch profile' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      profile: {
-        name: data.name,
-        email: data.email,
-        // Default values for fields that might not be in the table yet
-        phone: '',
-        timezone: 'America/New_York'
+      if (data) {
+        profile.name = data.name || profile.name;
+        profile.email = data.email || profile.email;
       }
-    });
+    }
+
+    const { data: settingsData } = await supabaseServer
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'user_profile_extra')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (settingsData?.[0]?.value) {
+      let extra: any;
+      try {
+        extra = typeof settingsData[0].value === 'string'
+          ? JSON.parse(settingsData[0].value)
+          : settingsData[0].value;
+      } catch { extra = {}; }
+      profile.phone = extra.phone || '';
+      profile.timezone = extra.timezone || 'America/New_York';
+      profile.sentimentReport = extra.sentimentReport || '';
+    }
+
+    return NextResponse.json({ ok: true, profile });
   } catch (error) {
     console.error('Profile fetch error:', error);
     return NextResponse.json({ ok: false, error: 'Server error' }, { status: 500 });
@@ -64,26 +69,56 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = userIdCookie.value;
-    const { name, email } = await request.json();
+    const body = await request.json();
 
-    if (userId === 'default') {
-      // Cannot update default user profile in DB
-      return NextResponse.json({ ok: true, message: 'Profile updated (mock)' });
+    if (userId !== 'default') {
+      const updates: any = {};
+      if (body.name !== undefined) updates.name = body.name;
+      if (body.email !== undefined) updates.email = body.email;
+
+      if (Object.keys(updates).length > 0) {
+        await supabaseServer
+          .from('comm_users')
+          .update(updates)
+          .eq('id', userId);
+      }
     }
 
-    // Only update name and email for now as we are sure those columns exist
-    const updates: any = {};
-    if (name !== undefined) updates.name = name;
-    if (email !== undefined) updates.email = email;
+    const extraFields = {
+      phone: body.phone || '',
+      timezone: body.timezone || 'America/New_York',
+      sentimentReport: body.sentimentReport || '',
+    };
 
-    const { error } = await supabaseServer
-      .from('comm_users')
-      .update(updates)
-      .eq('id', userId);
+    const { data: existing } = await supabaseServer
+      .from('app_settings')
+      .select('id')
+      .eq('key', 'user_profile_extra')
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    if (error) {
-      console.error('Error updating profile:', error);
-      return NextResponse.json({ ok: false, error: 'Failed to update profile' }, { status: 500 });
+    const existingId = existing?.[0]?.id;
+
+    if (existingId) {
+      const { error } = await supabaseServer
+        .from('app_settings')
+        .update({ value: extraFields })
+        .eq('id', existingId);
+      if (error) {
+        await supabaseServer
+          .from('app_settings')
+          .update({ value: JSON.stringify(extraFields) })
+          .eq('id', existingId);
+      }
+    } else {
+      const { error } = await supabaseServer
+        .from('app_settings')
+        .insert({ key: 'user_profile_extra', value: extraFields });
+      if (error) {
+        await supabaseServer
+          .from('app_settings')
+          .insert({ key: 'user_profile_extra', value: JSON.stringify(extraFields) });
+      }
     }
 
     return NextResponse.json({ ok: true });

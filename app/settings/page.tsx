@@ -13,6 +13,14 @@ export default function SettingsPage() {
       ]
     },
     {
+      title: 'Practice',
+      icon: 'local_hospital',
+      color: 'text-emerald-400',
+      items: [
+        { name: 'Appointment Types', description: 'Manage types, durations, and revenue tracking', href: '/settings/appointment-types', icon: 'event_note' },
+      ]
+    },
+    {
       title: 'Integrations',
       icon: 'hub',
       color: 'text-blue-400',

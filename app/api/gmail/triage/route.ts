@@ -131,6 +131,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let sentimentReport = '';
+    try {
+      const { data: profileData } = await supabaseServer
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'user_profile_extra')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      if (profileData?.[0]?.value) {
+        const extra = typeof profileData[0].value === 'string'
+          ? JSON.parse(profileData[0].value)
+          : profileData[0].value;
+        sentimentReport = extra.sentimentReport || '';
+      }
+    } catch (e) {
+      console.error('Failed loading sentiment report:', e);
+    }
+
     let processed = 0;
     let draftsCreated = 0;
     let skippedByRule = 0;
@@ -207,6 +225,7 @@ export async function POST(request: NextRequest) {
           to: account.email || '',
           subject,
           body,
+          sentimentReport,
         });
 
         const proposed = (triage.proposed_labels || []).slice(0, 4);

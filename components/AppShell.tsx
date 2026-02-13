@@ -76,17 +76,17 @@ export default function AppShell({ children }: AppShellProps) {
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
-                  <Link href="/settings" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                  <Link href="/settings/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     <span className="material-symbols-outlined">person</span>
-                    Profile
+                    <span>Profile</span>
                   </Link>
                   <Link href="/settings" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     <span className="material-symbols-outlined">settings</span>
-                    Settings
+                    <span>Settings</span>
                   </Link>
                   <Link href="/admin" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     <span className="material-symbols-outlined">admin_panel_settings</span>
-                    Admin Panel
+                    <span>Admin Panel</span>
                   </Link>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout-item" onClick={handleLogout}>
@@ -137,6 +137,7 @@ export default function AppShell({ children }: AppShellProps) {
           background: none;
           cursor: pointer;
           text-align: left;
+          white-space: nowrap;
         }
         .dropdown-item:hover {
           background: rgba(255, 255, 255, 0.05);

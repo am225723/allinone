@@ -125,8 +125,14 @@ export async function analyzeEmail(params: {
   to: string;
   subject: string;
   body: string;
+  sentimentReport?: string;
 }) {
-  const { from, to, subject, body } = params;
+  const { from, to, subject, body, sentimentReport } = params;
+
+  let styleInstruction = '';
+  if (sentimentReport && sentimentReport.trim().length > 0) {
+    styleInstruction = `\n\nIMPORTANT - When drafting a reply, match this person's communication style:\n${sentimentReport.slice(0, 2000)}\n`;
+  }
 
   const systemPrompt = `You are an email triage assistant. Analyze the email and provide:
 1. A brief summary (1-2 sentences)
@@ -134,7 +140,7 @@ export async function analyzeEmail(params: {
 3. Priority level (high/normal/low)
 4. Suggested labels (up to 4)
 5. If it needs a response, draft a professional reply
-
+${styleInstruction}
 Respond in JSON format:
 {
   "summary": "...",

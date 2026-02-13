@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 
-export const runtime = 'edge';
-
 export async function GET() {
   try {
-    const { data, error } = await supabaseServer
+    const { data, error, count } = await supabaseServer
       .from('gmail_accounts')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ accounts: [] });
+      console.error('Error querying gmail_accounts:', error);
+      return NextResponse.json({ accounts: [], error: error.message });
     }
+
+    console.log(`gmail_accounts query returned ${data?.length || 0} rows (count: ${count})`);
 
     const accounts = (data || []).map(acc => ({
       id: acc.id,
