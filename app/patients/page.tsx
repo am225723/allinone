@@ -818,24 +818,29 @@ export default function PatientsPage() {
               <button
                 key={idx}
                 onClick={() => setSelectedDay(day)}
-                className={`relative aspect-square p-1 rounded-lg text-sm transition flex flex-col items-center justify-start
+                className={`relative min-h-[80px] p-1 rounded-lg text-sm transition flex flex-col items-start
                   ${!isCurrentMonth ? 'text-gray-600' : 'text-gray-300'}
                   ${isToday ? 'bg-blue-500/20 text-blue-400 font-bold' : ''}
                   ${isSelected ? 'ring-2 ring-purple-500 bg-purple-500/10' : 'hover:bg-white/5'}
                 `}
               >
-                <span className="text-xs">{day.getDate()}</span>
+                <span className="text-xs self-center mb-0.5">{day.getDate()}</span>
                 {hasEvents && (
-                  <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
+                  <div className="w-full space-y-px overflow-hidden flex-1">
                     {dayEvents.slice(0, 3).map((ev, i) => (
                       <div
                         key={i}
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: ev.calendarColor || '#3b82f6' }}
-                      />
+                        className="flex items-center gap-0.5 px-0.5 rounded text-[9px] leading-tight truncate"
+                        style={{ color: ev.calendarColor || '#3b82f6' }}
+                      >
+                        <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: ev.calendarColor || '#3b82f6' }} />
+                        <span className="font-medium flex-shrink-0">
+                          {ev.start.getHours() === 0 && ev.start.getMinutes() === 0 ? '' : `${ev.start.getHours() % 12 || 12}${ev.start.getMinutes() > 0 ? ':' + pad2(ev.start.getMinutes()) : ''}${ev.start.getHours() >= 12 ? 'p' : 'a'}`}
+                        </span>
+                      </div>
                     ))}
                     {dayEvents.length > 3 && (
-                      <span className="text-[8px] text-gray-400">+{dayEvents.length - 3}</span>
+                      <span className="text-[8px] text-gray-400 pl-1">+{dayEvents.length - 3} more</span>
                     )}
                   </div>
                 )}

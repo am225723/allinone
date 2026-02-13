@@ -89,6 +89,12 @@ The dashboard features a modern, intuitive design with a focus on usability. Key
 - 2026-02-03: Added manual patient linking with search dropdown when no appointment selected
 - 2026-02-03: Added Template creation in Template Settings (custom templates with sections)
 - 2026-02-03: Added Google Drive file import in Session Inputs (alongside local upload)
+- 2026-02-13: Enhanced Gmail accounts page with per-account settings (draft toggle, signature mode, triage priority, max drafts, reply prefix, auto-label)
+- 2026-02-13: Created Gmail account settings API (app/api/gmail/accounts/settings/) for per-account preference storage
+- 2026-02-13: Gmail triage now respects per-account settings: draftsEnabled, signatureMode, autoLabel, triagePriority (all/important_only/none), maxDraftsPerRun
+- 2026-02-13: Created dedicated Calendar Settings page (/settings/calendars) with multi-calendar management, reordering, editing, and help text
+- 2026-02-13: Month view now shows event times (e.g. "9a", "2:30p") alongside colored dots instead of just dots
+- 2026-02-13: Added Practice section to Settings page with Appointment Types and Calendars links
 - 2026-02-12: Fixed Gmail rules API - column mapping (rule_type/is_enabled/gmail_account_id) now matches agent_rules table schema
 - 2026-02-12: Added domain-level skip rules (skip_domain) for Gmail triage alongside existing sender/subject rules
 - 2026-02-12: Created unified skip/suppression rules page (/gmail/rules) with tabs for Gmail rules and SMS suppressions

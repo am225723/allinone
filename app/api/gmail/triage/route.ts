@@ -17,6 +17,45 @@ import { analyzeEmail } from '@/lib/ai';
 
 const DEFAULT_LOOKBACK_DAYS = 14;
 
+interface AccountSettings {
+  draftsEnabled: boolean;
+  signatureMode: string;
+  customSignature: string;
+  autoLabel: boolean;
+  triagePriority: string;
+  maxDraftsPerRun: number;
+  replyPrefix: string;
+}
+
+async function loadAccountSettings(accountId: string): Promise<AccountSettings> {
+  const defaults: AccountSettings = {
+    draftsEnabled: true,
+    signatureMode: 'gmail',
+    customSignature: '',
+    autoLabel: true,
+    triagePriority: 'all',
+    maxDraftsPerRun: 50,
+    replyPrefix: '',
+  };
+
+  try {
+    const { data } = await supabaseServer
+      .from('app_settings')
+      .select('value')
+      .eq('key', `gmail_account_settings_${accountId}`)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (data?.[0]?.value) {
+      const saved = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+      return { ...defaults, ...saved };
+    }
+  } catch (e) {
+    console.error('Failed loading account settings:', e);
+  }
+  return defaults;
+}
+
 const SUMMARY_SUBJECT_MARKERS: string[] = [
   'AI Email Summary',
   'Inbox Summary',
@@ -155,11 +194,24 @@ export async function POST(request: NextRequest) {
     let skippedDuplicate = 0;
 
     for (const account of accounts) {
+      const acctSettings = await loadAccountSettings(account.id);
+
+      if (acctSettings.triagePriority === 'none') {
+        continue;
+      }
+
       const { oauth2Client } = await getOAuthClientForAccount(account.id);
       const gmail = gmailFromAuth(oauth2Client);
 
       const rules = await getRulesForAccount(account.id);
-      const signatureHtml = await getGmailSignature(oauth2Client);
+      let signatureHtml = '';
+      if (acctSettings.signatureMode === 'custom' && acctSettings.customSignature?.trim()) {
+        signatureHtml = acctSettings.customSignature;
+      } else if (acctSettings.signatureMode !== 'none') {
+        signatureHtml = await getGmailSignature(oauth2Client);
+      }
+
+      let accountDraftsCreated = 0;
 
       const msgs = await listRecentInboxMessages(gmail, lookbackDays);
       if (!msgs.length) continue;
@@ -178,6 +230,15 @@ export async function POST(request: NextRequest) {
 
         const full = await getMessage(gmail, m.id);
         const headers = full.payload?.headers || [];
+        const msgLabelIds: string[] = full.labelIds || [];
+
+        if (acctSettings.triagePriority === 'important_only') {
+          const isImportant = msgLabelIds.includes('IMPORTANT');
+          if (!isImportant) {
+            processed += 1;
+            continue;
+          }
+        }
 
         const subject = getHeader(headers, 'Subject', '(no subject)');
         const fromHeader = getHeader(headers, 'From', '');
@@ -212,8 +273,10 @@ export async function POST(request: NextRequest) {
             draft_created: false,
           });
 
-          const add = [nameToId['ai/triaged'], nameToId['ai/no_draft']].filter(Boolean) as string[];
-          if (add.length) await modifyMessageLabels(gmail, m.id, add);
+          if (acctSettings.autoLabel !== false) {
+            const add = [nameToId['ai/triaged'], nameToId['ai/no_draft']].filter(Boolean) as string[];
+            if (add.length) await modifyMessageLabels(gmail, m.id, add);
+          }
 
           processed += 1;
           continue;
@@ -235,13 +298,19 @@ export async function POST(request: NextRequest) {
 
         let draftCreated = false;
 
-        if (triage.needs_response && triage.draft_reply?.trim()) {
-          const replyText = triage.draft_reply;
+        const canCreateDraft = acctSettings.draftsEnabled !== false
+          && accountDraftsCreated < (acctSettings.maxDraftsPerRun || 50);
+
+        if (canCreateDraft && triage.needs_response && triage.draft_reply?.trim()) {
+          const replyText = acctSettings.replyPrefix
+            ? `${acctSettings.replyPrefix}\n\n${triage.draft_reply}`
+            : triage.draft_reply;
 
           try {
             await createDraftReply(gmail, full, replyText, signatureHtml);
             draftCreated = true;
             draftsCreated += 1;
+            accountDraftsCreated += 1;
           } catch (e) {
             console.error('Failed creating draft', e);
             draftCreated = false;
@@ -259,16 +328,18 @@ export async function POST(request: NextRequest) {
           draft_created: draftCreated,
         });
 
-        const addLabels = [
-          ...labelIds,
-          draftCreated ? nameToId['ai/draft_created'] : nameToId['ai/no_draft'],
-        ].filter(Boolean) as string[];
+        if (acctSettings.autoLabel !== false) {
+          const addLabels = [
+            ...labelIds,
+            draftCreated ? nameToId['ai/draft_created'] : nameToId['ai/no_draft'],
+          ].filter(Boolean) as string[];
 
-        if (addLabels.length) {
-          try {
-            await modifyMessageLabels(gmail, m.id, addLabels);
-          } catch (e) {
-            console.error('Failed modifying labels', e);
+          if (addLabels.length) {
+            try {
+              await modifyMessageLabels(gmail, m.id, addLabels);
+            } catch (e) {
+              console.error('Failed modifying labels', e);
+            }
           }
         }
 

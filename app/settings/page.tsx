@@ -18,6 +18,7 @@ export default function SettingsPage() {
       color: 'text-emerald-400',
       items: [
         { name: 'Appointment Types', description: 'Manage types, durations, and revenue tracking', href: '/settings/appointment-types', icon: 'event_note' },
+        { name: 'Calendars', description: 'Connect and manage iCal calendars', href: '/settings/calendars', icon: 'calendar_month' },
       ]
     },
     {
