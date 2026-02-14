@@ -227,7 +227,34 @@ export default function PatientsPage() {
     showLocation: true,
     showCalendarName: true,
   });
+  const [leftTimeOffset, setLeftTimeOffset] = useState(0);
+  const [rightTimeOffset, setRightTimeOffset] = useState(0);
+  const [appointmentTypeColors, setAppointmentTypeColors] = useState<{[key: string]: string}>({
+    'intake': '#ef4444',
+    'evaluation': '#ef4444',
+    'assessment': '#ef4444',
+    'follow-up': '#3b82f6',
+    'followup': '#3b82f6',
+    'therapy': '#8b5cf6',
+    'medication': '#10b981',
+    'consultation': '#f59e0b',
+    'default': '#3b82f6',
+  });
   const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+  function getAppointmentTypeColor(summary: string, calendarColor?: string): string {
+    if (calendarColor) return calendarColor;
+    
+    const summaryLower = summary.toLowerCase();
+    
+    for (const [type, color] of Object.entries(appointmentTypeColors)) {
+      if (type !== 'default' && summaryLower.includes(type)) {
+        return color;
+      }
+    }
+    
+    return appointmentTypeColors.default;
+  }
 
   const slots = useMemo(() => generateTimeSlots(), []);
 
@@ -676,6 +703,25 @@ export default function PatientsPage() {
                     </button>
                   </div>
                   
+                  {/* Time Adjustment for Left Calendar */}
+                  <div className="mb-2 p-2 bg-white/5 rounded-lg">
+                    <label className="text-xs text-gray-400 block mb-1">Time Adjustment</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="-720"
+                        max="720"
+                        step="15"
+                        value={leftTimeOffset}
+                        onChange={(e) => setLeftTimeOffset(Number(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="min-w-[50px] text-xs text-gray-200 text-right">
+                        {leftTimeOffset >= 0 ? '+' : ''}{leftTimeOffset}m
+                      </div>
+                    </div>
+                  </div>
+                  
                   {showDisplayOptions && (
                     <div className="mb-3 p-2 bg-white/5 rounded-lg space-y-2">
                       <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
@@ -705,6 +751,21 @@ export default function PatientsPage() {
                         />
                         Show Calendar Name
                       </label>
+                      {/* Appointment Type Colors */}
+                      <div className="pt-2 border-t border-white/10">
+                        <label className="text-xs text-gray-400 block mb-2">Appointment Type Colors</label>
+                        {Object.entries(appointmentTypeColors).filter(([key]) => key !== 'default').map(([type, color]) => (
+                          <div key={type} className="flex items-center gap-2 mb-1">
+                            <input
+                              type="color"
+                              value={color}
+                              onChange={(e) => setAppointmentTypeColors({...appointmentTypeColors, [type]: e.target.value})}
+                              className="w-6 h-6 rounded cursor-pointer"
+                            />
+                            <span className="text-xs text-gray-300 capitalize">{type}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -728,17 +789,20 @@ export default function PatientsPage() {
                       dayStart.setHours(8, 0, 0, 0);
                       const totalHours = slots.length;
 
-                      const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
-                      const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
+                      // Apply time offset for left calendar
+                      const adjustedStart = new Date(ev.start.getTime() + leftTimeOffset * 60000);
+                      const adjustedEnd = new Date(ev.end.getTime() + leftTimeOffset * 60000);
+
+                      const startH = clamp(0, hoursBetween(dayStart, adjustedStart), totalHours);
+                      const endH = clamp(0, hoursBetween(dayStart, adjustedEnd), totalHours);
                       const top = startH * 64;
                       const height = Math.max(50, (endH - startH) * 64);
 
                       const summaryLower = (ev.summary || '').toLowerCase();
                       const locationLower = (ev.location || '').toLowerCase();
                       const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
-                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
                       
-                      const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
+                      const calColor = getAppointmentTypeColor(ev.summary, ev.calendarColor);
 
                       return (
                         <button
@@ -751,7 +815,7 @@ export default function PatientsPage() {
                             <div className="min-w-0">
                               <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
                               <p className="text-xs mt-0.5 text-white/80">
-                                {displayOptions.showTime && `${timeLabel(ev.start)} - ${timeLabel(ev.end)} `}
+                                {displayOptions.showTime && `${timeLabel(adjustedStart)} - ${timeLabel(adjustedEnd)} `}
                                 {displayOptions.showTime && displayOptions.showLocation && '| '}
                                 {displayOptions.showLocation && (ev.location || 'No location')}
                               </p>
@@ -779,18 +843,40 @@ export default function PatientsPage() {
                     />
                   </div>
                   
+                  {/* Time Adjustment for Right Calendar */}
+                  <div className="mb-2 p-2 bg-white/5 rounded-lg">
+                    <label className="text-xs text-gray-400 block mb-1">Time Adjustment</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="-720"
+                        max="720"
+                        step="15"
+                        value={rightTimeOffset}
+                        onChange={(e) => setRightTimeOffset(Number(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="min-w-[50px] text-xs text-gray-200 text-right">
+                        {rightTimeOffset >= 0 ? '+' : ''}{rightTimeOffset}m
+                      </div>
+                    </div>
+                  </div>
+                  
                   {/* No time slots for right calendar - events listed vertically */}
 
                   {/* Event blocks for calendar 2 (even index) - vertical list */}
                   {eventsForDay
                     .filter((ev, idx) => idx % 2 === 1)
                     .map((ev, idx) => {
+                      // Apply time offset for right calendar
+                      const adjustedStart = new Date(ev.start.getTime() + rightTimeOffset * 60000);
+                      const adjustedEnd = new Date(ev.end.getTime() + rightTimeOffset * 60000);
+
                       const summaryLower = (ev.summary || '').toLowerCase();
                       const locationLower = (ev.location || '').toLowerCase();
                       const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
-                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
                       
-                      const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
+                      const calColor = getAppointmentTypeColor(ev.summary, ev.calendarColor);
                       const top = idx * 80;
 
                       return (
@@ -804,7 +890,7 @@ export default function PatientsPage() {
                             <div className="min-w-0">
                               <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
                               <p className="text-xs mt-0.5 text-white/80">
-                                {displayOptions.showTime && `${timeLabel(ev.start)} - ${timeLabel(ev.end)} `}
+                                {displayOptions.showTime && `${timeLabel(adjustedStart)} - ${timeLabel(adjustedEnd)} `}
                                 {displayOptions.showTime && displayOptions.showLocation && '| '}
                                 {displayOptions.showLocation && (ev.location || 'No location')}
                               </p>
