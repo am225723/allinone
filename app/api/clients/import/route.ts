@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
+import Papa from 'papaparse';
 
 export const runtime = 'edge';
 
@@ -24,37 +25,18 @@ function normalizePhone(phone: string): string | null {
 }
 
 function parseCSV(csvText: string): any[] {
-  const lines = csvText.split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  const rows: any[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (const char of lines[i]) {
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        values.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    values.push(current.trim());
-    
-    const row: any = {};
-    headers.forEach((header, index) => {
-      row[header] = values[index] || '';
+  try {
+    const result = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().replace(/^"|"$/g, ''),
     });
-    rows.push(row);
+    
+    return result.data || [];
+  } catch (error) {
+    console.error('CSV parsing error:', error);
+    return [];
   }
-  
-  return rows;
 }
 
 export async function POST(request: NextRequest) {
