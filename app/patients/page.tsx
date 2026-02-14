@@ -196,6 +196,18 @@ function generateTimeSlots() {
   return slots;
 }
 
+type Client = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  preferred_name: string | null;
+  dob: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  gender?: string | null;
+};
+
 export default function PatientsPage() {
   const [selectedDay, setSelectedDay] = useState(() => startOfDay(new Date()));
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -209,6 +221,7 @@ export default function PatientsPage() {
   const tzOffsetMins = selectedTimezone === 'custom' ? customOffsetMins : getTimezoneOffsetMinutes(selectedTimezone);
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [savedCalendars, setSavedCalendars] = useState<CalendarEntry[]>([]);
@@ -223,6 +236,9 @@ export default function PatientsPage() {
   const [rightCalendarName, setRightCalendarName] = useState('Calendar 2');
   const [leftEditMode, setLeftEditMode] = useState(false);
   const [rightEditMode, setRightEditMode] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [loadingClients, setLoadingClients] = useState(false);
   const [leftDisplayOptions, setLeftDisplayOptions] = useState({
     showTime: true,
     showLocation: true,
@@ -317,6 +333,23 @@ export default function PatientsPage() {
       }
     }
     loadSettingsData();
+  }, []);
+
+  useEffect(() => {
+    async function loadClients() {
+      setLoadingClients(true);
+      try {
+        const res = await fetch('/api/clients?status=active&pageSize=100');
+        const data = await res.json();
+        if (data.ok) {
+          setClients(data.clients || []);
+        }
+      } catch (e) {
+        console.error('Failed to load clients:', e);
+      }
+      setLoadingClients(false);
+    }
+    loadClients();
   }, []);
 
   useEffect(() => {
@@ -462,6 +495,40 @@ export default function PatientsPage() {
     if (!selectedEvent) return;
     setEvents(prev => prev.map(ev => (ev.id === selectedEvent.id ? { ...ev, appointment: { ...(ev.appointment || {}), ...patch } } : ev)));
   }
+
+  function attachClientToEvent(client: Client) {
+    if (!selectedEvent) return;
+    
+    setEvents(prev => prev.map(ev => {
+      if (ev.id === selectedEvent.id) {
+        return {
+          ...ev,
+          client: {
+            name: `${client.first_name} ${client.last_name}`,
+            dob: client.dob || '',
+            address: client.address || '',
+            gender: client.gender || '',
+            email: client.email || '',
+            phone: client.phone || '',
+          },
+          // Update event title to patient name if it's a generic title
+          summary: ev.summary === 'Appointment' || !ev.summary ? `${client.first_name} ${client.last_name}` : ev.summary,
+        };
+      }
+      return ev;
+    }));
+    
+    setShowClientModal(false);
+    setClientSearch('');
+  }
+
+  const filteredClients = clients.filter(client => {
+    const search = clientSearch.toLowerCase();
+    const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+    return fullName.includes(search) || 
+           client.first_name.toLowerCase().includes(search) ||
+           client.last_name.toLowerCase().includes(search);
+  });
 
   return (
     <div className="container py-6">
@@ -693,7 +760,7 @@ export default function PatientsPage() {
               <div className="grid grid-cols-2 gap-4" style={{ minHeight: `${slots.length * 64}px` }}>
                 {/* Left Column - First Calendar */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10" style={{ height: '40px' }}>
                     <input
                       type="text"
                       value={leftCalendarName}
@@ -796,6 +863,7 @@ export default function PatientsPage() {
                       const dayStart = new Date(selectedDay);
                       dayStart.setHours(8, 0, 0, 0);
                       const totalHours = slots.length;
+                      const HEADER_HEIGHT = 48; // Account for calendar name and settings
 
                       // Apply time offset for left calendar
                       const adjustedStart = new Date(ev.start.getTime() + leftTimeOffset * 60000);
@@ -803,7 +871,7 @@ export default function PatientsPage() {
 
                       const startH = clamp(0, hoursBetween(dayStart, adjustedStart), totalHours);
                       const endH = clamp(0, hoursBetween(dayStart, adjustedEnd), totalHours);
-                      const top = startH * 64;
+                      const top = HEADER_HEIGHT + (startH * 64);
                       const height = Math.max(50, (endH - startH) * 64);
 
                       const summaryLower = (ev.summary || '').toLowerCase();
@@ -913,27 +981,36 @@ export default function PatientsPage() {
                   
                   {/* No time slots for right calendar - events listed vertically */}
 
-                  {/* Event blocks for calendar 2 (even index) - vertical list */}
+                  {/* Event blocks for calendar 2 (even index) - time-based positioning */}
                   {eventsForDay
                     .filter((ev, idx) => idx % 2 === 1)
-                    .map((ev, idx) => {
+                    .map((ev) => {
+                      const dayStart = new Date(selectedDay);
+                      dayStart.setHours(8, 0, 0, 0);
+                      const totalHours = slots.length;
+                      const HEADER_HEIGHT = 48; // Account for calendar name and settings
+
                       // Apply time offset for right calendar
                       const adjustedStart = new Date(ev.start.getTime() + rightTimeOffset * 60000);
                       const adjustedEnd = new Date(ev.end.getTime() + rightTimeOffset * 60000);
+
+                      const startH = clamp(0, hoursBetween(dayStart, adjustedStart), totalHours);
+                      const endH = clamp(0, hoursBetween(dayStart, adjustedEnd), totalHours);
+                      const top = HEADER_HEIGHT + (startH * 64);
+                      const height = Math.max(50, (endH - startH) * 64);
 
                       const summaryLower = (ev.summary || '').toLowerCase();
                       const locationLower = (ev.location || '').toLowerCase();
                       const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
                       
                       const calColor = getAppointmentTypeColor(ev.summary, ev.calendarColor);
-                      const top = idx * 80;
 
                       return (
                         <button
                           key={ev.id}
                           onClick={() => setSelectedEventId(ev.id)}
                           className={`absolute left-0 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
-                          style={{ top: `${top}px`, height: 'auto', minHeight: '70px', backgroundColor: calColor, borderColor: calColor }}
+                          style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
                         >
                           <div className="flex justify-between items-start text-white">
                             <div className="min-w-0">
@@ -965,8 +1042,17 @@ export default function PatientsPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-white">Appointment Details</h2>
             {selectedEvent && (
-              <div className="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition">
-                <span className="material-symbols-outlined text-sm">edit</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowClientModal(true)}
+                  className="w-8 h-8 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center cursor-pointer hover:bg-emerald-500/30 transition"
+                  title="Attach Client"
+                >
+                  <span className="material-symbols-outlined text-sm">person_add</span>
+                </button>
+                <div className="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition">
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                </div>
               </div>
             )}
           </div>
@@ -1434,6 +1520,88 @@ export default function PatientsPage() {
                 className="w-full py-2 bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white rounded-lg font-medium transition"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client Selection Modal */}
+      {showClientModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
+          <div className="bg-[#1a1d24] border border-white/10 rounded-xl max-w-lg w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">Attach Client to Appointment</h3>
+              <button onClick={() => setShowClientModal(false)} className="text-gray-400 hover:text-white">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="relative mb-4">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search clients by name..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {loadingClients ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 rounded-full border-2 border-gray-600 border-t-blue-500"></div>
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    No clients found
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredClients.map((client) => (
+                      <button
+                        key={client.id}
+                        onClick={() => attachClientToEvent(client)}
+                        className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-left transition-colors border border-transparent hover:border-white/10"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white font-medium">
+                              {client.last_name}, {client.first_name}
+                            </div>
+                            {client.preferred_name && (
+                              <div className="text-xs text-gray-500">({client.preferred_name})</div>
+                            )}
+                          </div>
+                          {client.dob && (
+                            <div className="text-xs text-gray-400">
+                              {new Date(client.dob).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        {(client.phone || client.email) && (
+                          <div className="mt-1 text-xs text-gray-400">
+                            {client.phone && <span className="mr-2">{client.phone}</span>}
+                            {client.email}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-white/10">
+              <button
+                onClick={() => setShowClientModal(false)}
+                className="w-full py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>

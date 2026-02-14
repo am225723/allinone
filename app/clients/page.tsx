@@ -1117,7 +1117,7 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
               <h3 className="text-lg font-semibold text-white mb-4">Import Complete</h3>
               <div className="grid grid-cols-2 gap-4 text-sm max-w-xs mx-auto">
                 <div className="bg-white/5 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-emerald-400">{result.imported}</div>
+                  <div className="text-2xl font-bold text-emerald-400">{result.created}</div>
                   <div className="text-gray-400">Imported</div>
                 </div>
                 <div className="bg-white/5 p-3 rounded-lg">
