@@ -594,7 +594,7 @@ export default function PatientsPage() {
 
       {/* Main Grid: Agenda + Details */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Daily Agenda */}
+        {/* Daily Agenda - Split into two columns for different calendars */}
         <div className="lg:col-span-7 card min-h-[700px] flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -649,61 +649,132 @@ export default function PatientsPage() {
                 </div>
               </div>
             ) : (
-              <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                {/* Time slots */}
-                {slots.map((s, idx) => (
-                  <div
-                    key={s.hour}
-                    className="border-t border-white/5 h-16 relative"
-                  >
-                    <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
-                      {s.label}
-                    </span>
+              <div className="grid grid-cols-2 gap-4" style={{ minHeight: `${slots.length * 64}px` }}>
+                {/* Left Column - First Calendar */}
+                <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
+                  <div className="text-xs font-medium text-white mb-2 pb-2 border-b border-white/10">
+                    {savedCalendars[0]?.name || 'Calendar 1'}
                   </div>
-                ))}
-
-                {/* Event blocks */}
-                {eventsForDay.map((ev) => {
-                  const dayStart = new Date(selectedDay);
-                  dayStart.setHours(8, 0, 0, 0);
-                  const totalHours = slots.length;
-
-                  const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
-                  const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
-                  const top = startH * 64;
-                  const height = Math.max(50, (endH - startH) * 64);
-
-                  const summaryLower = (ev.summary || '').toLowerCase();
-                  const locationLower = (ev.location || '').toLowerCase();
-                  const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
-                  const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
-                  
-                  const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
-
-                  return (
-                    <button
-                      key={ev.id}
-                      onClick={() => setSelectedEventId(ev.id)}
-                      className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
-                      style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
+                  {/* Time slots */}
+                  {slots.map((s, idx) => (
+                    <div
+                      key={s.hour}
+                      className="border-t border-white/5 h-16 relative"
                     >
-                      <div className="flex justify-between items-start text-white">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
-                          <p className="text-xs mt-0.5 text-white/80">
-                            {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
-                          </p>
-                          {ev.calendarName && (
-                            <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
-                          )}
-                        </div>
-                        <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
-                          {isTelehealth ? 'videocam' : 'assignment_ind'}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                      <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Event blocks for calendar 1 (odd index) */}
+                  {eventsForDay
+                    .filter((ev, idx) => idx % 2 === 0)
+                    .map((ev) => {
+                      const dayStart = new Date(selectedDay);
+                      dayStart.setHours(8, 0, 0, 0);
+                      const totalHours = slots.length;
+
+                      const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
+                      const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
+                      const top = startH * 64;
+                      const height = Math.max(50, (endH - startH) * 64);
+
+                      const summaryLower = (ev.summary || '').toLowerCase();
+                      const locationLower = (ev.location || '').toLowerCase();
+                      const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
+                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
+                      
+                      const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
+
+                      return (
+                        <button
+                          key={ev.id}
+                          onClick={() => setSelectedEventId(ev.id)}
+                          className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                          style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
+                        >
+                          <div className="flex justify-between items-start text-white">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
+                              <p className="text-xs mt-0.5 text-white/80">
+                                {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                              </p>
+                              {ev.calendarName && (
+                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
+                              )}
+                            </div>
+                            <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
+                              {isTelehealth ? 'videocam' : 'assignment_ind'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* Right Column - Second Calendar */}
+                <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
+                  <div className="text-xs font-medium text-white mb-2 pb-2 border-b border-white/10">
+                    {savedCalendars[1]?.name || savedCalendars[0]?.name ? 'Calendar 2' : 'Other Calendars'}
+                  </div>
+                  {/* Time slots */}
+                  {slots.map((s, idx) => (
+                    <div
+                      key={s.hour}
+                      className="border-t border-white/5 h-16 relative"
+                    >
+                      <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Event blocks for calendar 2 (even index) */}
+                  {eventsForDay
+                    .filter((ev, idx) => idx % 2 === 1)
+                    .map((ev) => {
+                      const dayStart = new Date(selectedDay);
+                      dayStart.setHours(8, 0, 0, 0);
+                      const totalHours = slots.length;
+
+                      const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
+                      const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
+                      const top = startH * 64;
+                      const height = Math.max(50, (endH - startH) * 64);
+
+                      const summaryLower = (ev.summary || '').toLowerCase();
+                      const locationLower = (ev.location || '').toLowerCase();
+                      const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
+                      const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
+                      
+                      const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
+
+                      return (
+                        <button
+                          key={ev.id}
+                          onClick={() => setSelectedEventId(ev.id)}
+                          className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                          style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
+                        >
+                          <div className="flex justify-between items-start text-white">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
+                              <p className="text-xs mt-0.5 text-white/80">
+                                {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                              </p>
+                              {ev.calendarName && (
+                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
+                              )}
+                            </div>
+                            <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
+                              {isTelehealth ? 'videocam' : 'assignment_ind'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
             )}
           </div>
