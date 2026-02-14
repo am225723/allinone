@@ -983,6 +983,9 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
         setError(data?.error || invokeError?.message || 'Import failed');
       } else {
         setResult(data.summary);
+        setFile(null);
+        setPreview([]);
+        setHeaders([]);
       }
     } catch (err) {
       setError('Failed to import clients');
@@ -1024,11 +1027,29 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Upload CSV File</label>
                 <input
+                  key={file ? file.name : 'initial'}
                   type="file"
                   accept=".csv"
                   onChange={handleFileChange}
                   className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer"
                 />
+                {file && (
+                  <div className="mt-2 flex items-center justify-between text-sm">
+                    <span className="text-gray-300">Selected: {file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setPreview([]);
+                        setHeaders([]);
+                        setError('');
+                      }}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
 
               {preview.length > 0 && (
