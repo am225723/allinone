@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { generateNotePDF, parseSectionsFromNote } from '@/lib/generate-pdf';
 
 type Patient = {
   id: string;
@@ -89,13 +90,6 @@ type DiagnosisSuggestion = {
   confidence: 'high' | 'medium' | 'low';
 };
 
-const SAMPLE_PATIENTS: Patient[] = [
-  { id: 'p1', name: 'Jennie Rivers', mrn: 'MRN-2024-0158', dob: '07/16/1989' },
-  { id: 'p2', name: 'Michael Chen', mrn: 'MRN-2024-0203', dob: '03/22/1975' },
-  { id: 'p3', name: 'Sarah Martinez', mrn: 'MRN-2024-0087', dob: '11/08/1992' },
-  { id: 'p4', name: 'David Thompson', mrn: 'MRN-2024-0312', dob: '06/30/1968' },
-  { id: 'p5', name: 'Emily Watson', mrn: 'MRN-2024-0445', dob: '09/14/2001' },
-];
 
 const SAMPLE_DRIVE_FILES: DriveFile[] = [
   { id: 'gf1', name: 'Session_Audio_20260203.mp3', mimeType: 'audio/mpeg', modifiedTime: '2026-02-03T10:30:00Z' },
@@ -186,6 +180,8 @@ export default function NoteAIPage() {
   const [linkedPatient, setLinkedPatient] = useState<Patient | null>(null);
   const [showPatientPicker, setShowPatientPicker] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
+  const [allClients, setAllClients] = useState<Patient[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(DEFAULT_TEMPLATES[0].id);
@@ -227,36 +223,68 @@ export default function NoteAIPage() {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [copilotMode, setCopilotMode] = useState<'preflight' | 'questions'>('preflight');
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [driveUploadResult, setDriveUploadResult] = useState<{success: boolean; link?: string; error?: string} | null>(null);
+
+  useEffect(() => {
+    async function loadClients() {
+      setClientsLoading(true);
+      try {
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ search: '', pageSize: 500 }),
+        });
+        const data = await res.json();
+        if (data.ok && data.clients) {
+          setAllClients(data.clients.map((c: any) => ({
+            id: c.id,
+            name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+            mrn: c.mrn || undefined,
+            dob: c.dob || undefined,
+          })));
+        }
+      } catch (e) {
+        console.error('Failed to load clients:', e);
+      } finally {
+        setClientsLoading(false);
+      }
+    }
+    loadClients();
+  }, []);
 
   useEffect(() => {
     if (appointmentId) {
+      const matchedClient = allClients.find(c => c.id === appointmentId);
+      if (matchedClient) {
+        setLinkedPatient(matchedClient);
+        setAppointment({
+          id: appointmentId,
+          patientName: matchedClient.name,
+          mrn: matchedClient.mrn,
+          dob: matchedClient.dob,
+          dateOfService: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          appointmentType: 'Session',
+          notes: '',
+        });
+      }
       setLoading(false);
-      const patient = SAMPLE_PATIENTS[0];
-      setLinkedPatient(patient);
-      setAppointment({
-        id: appointmentId,
-        patientName: patient.name,
-        mrn: patient.mrn,
-        dob: patient.dob,
-        dateOfService: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        appointmentType: 'Follow-up',
-        notes: 'Patient reports improved sleep patterns. Continue current medication regimen.',
-      });
     } else {
       setLoading(false);
     }
-  }, [appointmentId]);
+  }, [appointmentId, allClients]);
 
   const currentTemplate = useMemo(() => templates.find(t => t.id === selectedTemplate), [templates, selectedTemplate]);
 
   const filteredPatients = useMemo(() => {
-    if (!patientSearch) return SAMPLE_PATIENTS;
+    if (!patientSearch) return allClients;
     const search = patientSearch.toLowerCase();
-    return SAMPLE_PATIENTS.filter(p => 
+    return allClients.filter(p => 
       p.name.toLowerCase().includes(search) || 
       p.mrn?.toLowerCase().includes(search)
     );
-  }, [patientSearch]);
+  }, [patientSearch, allClients]);
 
   useEffect(() => {
     if (currentTemplate) {
@@ -595,22 +623,87 @@ ${answersForSection ? `\n${answersForSection}` : ''}
     alert(`Note saved as ${status}!`);
   }
 
+  function buildPDF() {
+    if (!currentTemplate || !generatedNote) return null;
+    const patientName = linkedPatient?.name || appointment?.patientName || '[CLIENT NAME]';
+    const mrnVal = linkedPatient?.mrn || appointment?.mrn || '[NOT REPORTED]';
+    const dobVal = linkedPatient?.dob || appointment?.dob || '[NOT REPORTED]';
+    const dos = appointment?.dateOfService || new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const sections = parseSectionsFromNote(generatedNote);
+    return generateNotePDF({
+      patientName,
+      mrn: mrnVal,
+      dob: dobVal,
+      dateOfService: dos,
+      templateName: currentTemplate.name,
+      sections,
+    });
+  }
+
+  function previewPDF() {
+    if (showPdfPreview) {
+      setShowPdfPreview(false);
+      return;
+    }
+    const doc = buildPDF();
+    if (!doc) return;
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    setPdfBlobUrl(url);
+    setShowPdfPreview(true);
+  }
+
   async function exportToPDF() {
     if (!linkedPatient && !appointment) {
       alert('Please link a patient first to save to their folder.');
       return;
     }
 
-    setExporting(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setExporting(false);
+    const doc = buildPDF();
+    if (!doc) return;
 
-    const patientName = linkedPatient?.name || appointment?.patientName || 'Unknown';
-    const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-    const folderPath = `/PatientForms/${patientName.replace(/\s+/g, '_')}`;
-    const fileName = `${dateStr}_${currentTemplate?.name.replace(/\s+/g, '_')}.pdf`;
-    
-    alert(`Note exported to Google Drive:\n${folderPath}/${fileName}`);
+    setExporting(true);
+    setDriveUploadResult(null);
+
+    try {
+      const patientName = linkedPatient?.name || appointment?.patientName || 'Unknown';
+      const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+      const fileName = `${dateStr}_${currentTemplate?.name.replace(/\s+/g, '_')}_${patientName.replace(/\s+/g, '_')}.pdf`;
+
+      const pdfBlob = doc.output('blob');
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filename', fileName);
+      if (linkedPatient?.id) formData.append('clientId', linkedPatient.id);
+
+      const res = await fetch('/api/google-drive/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (res.ok && data.id) {
+        setDriveUploadResult({
+          success: true,
+          link: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
+        });
+      } else {
+        setDriveUploadResult({
+          success: false,
+          error: data.error || 'Upload failed',
+        });
+      }
+    } catch (err: any) {
+      setDriveUploadResult({
+        success: false,
+        error: err?.message || 'Upload failed',
+      });
+    } finally {
+      setExporting(false);
+    }
   }
 
   if (loading) {
@@ -695,24 +788,30 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                 </div>
               </div>
               <div className="max-h-64 overflow-y-auto">
-                {filteredPatients.map(patient => (
-                  <button
-                    key={patient.id}
-                    onClick={() => selectPatient(patient)}
-                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition text-left"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="text-sm text-white font-medium">{patient.name}</div>
-                      <div className="text-xs text-gray-500">{patient.mrn} • DOB: {patient.dob}</div>
-                    </div>
-                  </button>
-                ))}
-                {filteredPatients.length === 0 && (
+                {clientsLoading ? (
                   <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                    No patients found
+                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    Loading clients...
+                  </div>
+                ) : filteredPatients.length > 0 ? (
+                  filteredPatients.map(patient => (
+                    <button
+                      key={patient.id}
+                      onClick={() => selectPatient(patient)}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold">
+                        {patient.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="text-sm text-white font-medium">{patient.name}</div>
+                        <div className="text-xs text-gray-500">{patient.mrn || 'No MRN'} {patient.dob ? `• DOB: ${patient.dob}` : ''}</div>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    {allClients.length === 0 ? 'No clients in database. Add clients from the Clients page.' : 'No matching clients found'}
                   </div>
                 )}
               </div>
@@ -1072,12 +1171,23 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                 <span className="material-symbols-outlined text-cyan-400">article</span>
                 Generated Note
               </h3>
-              {noteVersions.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{noteVersions.length} version{noteVersions.length > 1 ? 's' : ''}</span>
-                  <button className="text-xs text-blue-400 hover:text-blue-300">View History</button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {generatedNote && (
+                  <button
+                    onClick={previewPDF}
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    {showPdfPreview ? 'Edit Text' : 'PDF Preview'}
+                  </button>
+                )}
+                {noteVersions.length > 0 && (
+                  <>
+                    <span className="text-xs text-gray-500">{noteVersions.length} version{noteVersions.length > 1 ? 's' : ''}</span>
+                    <button className="text-xs text-blue-400 hover:text-blue-300">View History</button>
+                  </>
+                )}
+              </div>
             </div>
 
             {!generatedNote ? (
@@ -1090,21 +1200,32 @@ ${answersForSection ? `\n${answersForSection}` : ''}
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto mb-4">
-                  <textarea
-                    value={generatedNote}
-                    onChange={(e) => setGeneratedNote(e.target.value)}
-                    className="w-full h-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-xs text-gray-200 resize-none font-mono leading-relaxed"
-                    style={{ minHeight: '400px' }}
-                  />
+                  {showPdfPreview && pdfBlobUrl ? (
+                    <iframe
+                      src={pdfBlobUrl}
+                      className="w-full rounded-lg border border-white/10"
+                      style={{ minHeight: '500px', height: '100%' }}
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <textarea
+                      value={generatedNote}
+                      onChange={(e) => { setGeneratedNote(e.target.value); setShowPdfPreview(false); setPdfBlobUrl(null); }}
+                      className="w-full h-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-xs text-gray-200 resize-none font-mono leading-relaxed"
+                      style={{ minHeight: '400px' }}
+                    />
+                  )}
                 </div>
 
                 {/* Section Tools */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">Shorten</button>
-                  <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">Expand</button>
-                  <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">More Clinical</button>
-                  <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">More Concise</button>
-                </div>
+                {!showPdfPreview && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">Shorten</button>
+                    <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">Expand</button>
+                    <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">More Clinical</button>
+                    <button className="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-gray-400 hover:text-white hover:bg-white/10 transition">More Concise</button>
+                  </div>
+                )}
 
                 {/* Save/Export Actions */}
                 <div className="grid grid-cols-2 gap-3">
@@ -1123,19 +1244,57 @@ ${answersForSection ? `\n${answersForSection}` : ''}
                     <span className="material-symbols-outlined text-base">check_circle</span> Save Final
                   </button>
                 </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <button
+                    onClick={previewPDF}
+                    className="py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                    {showPdfPreview ? 'Back to Editor' : 'View as PDF'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const doc = buildPDF();
+                      if (doc) doc.save(`${currentTemplate?.name.replace(/\s+/g, '_')}_note.pdf`);
+                    }}
+                    className="py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base">download</span> Download PDF
+                  </button>
+                </div>
                 <button
                   onClick={exportToPDF}
                   disabled={exporting || (!linkedPatient && !appointment)}
                   className="w-full mt-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 rounded-lg text-xs text-white font-medium transition flex items-center justify-center gap-2"
                 >
                   {exporting ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Exporting...</>
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Uploading to Google Drive...</>
                   ) : (
-                    <><span className="material-symbols-outlined text-base">add_to_drive</span> Save to Patient Folder</>
+                    <><span className="material-symbols-outlined text-base">add_to_drive</span> Save to Google Drive</>
                   )}
                 </button>
                 {!linkedPatient && !appointment && (
                   <p className="text-[10px] text-gray-500 text-center mt-1">Link a patient to save to their folder</p>
+                )}
+                {driveUploadResult && (
+                  <div className={`mt-2 p-3 rounded-lg text-xs ${driveUploadResult.success ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {driveUploadResult.success ? (
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Uploaded to Google Drive</span>
+                        {driveUploadResult.link && (
+                          <a href={driveUploadResult.link} target="_blank" rel="noopener noreferrer" className="text-emerald-300 underline ml-1">
+                            Open
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">error</span>
+                        <span>{driveUploadResult.error}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

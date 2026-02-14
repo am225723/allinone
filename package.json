@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.49.1",
     "@types/papaparse": "^5.5.2",
     "googleapis": "^134.0.0",
+    "jspdf": "^4.1.0",
     "libphonenumber-js": "^1.12.36",
     "next": "^14.2.9",
     "openai": "^4.68.0",

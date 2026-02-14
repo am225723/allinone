@@ -33,6 +33,32 @@ type CalendarEvent = {
   };
 };
 
+const TIMEZONE_OPTIONS = [
+  { label: 'Auto (Browser)', value: 'auto', offset: 0 },
+  { label: 'US Eastern (ET)', value: 'America/New_York', offset: 0 },
+  { label: 'US Central (CT)', value: 'America/Chicago', offset: 0 },
+  { label: 'US Mountain (MT)', value: 'America/Denver', offset: 0 },
+  { label: 'US Pacific (PT)', value: 'America/Los_Angeles', offset: 0 },
+  { label: 'US Alaska', value: 'America/Anchorage', offset: 0 },
+  { label: 'US Hawaii', value: 'Pacific/Honolulu', offset: 0 },
+  { label: 'UTC', value: 'UTC', offset: 0 },
+  { label: 'Custom offset', value: 'custom', offset: 0 },
+];
+
+function getTimezoneOffsetMinutes(tz: string): number {
+  if (tz === 'auto' || tz === 'custom') return 0;
+  try {
+    const now = new Date();
+    const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' });
+    const tzStr = now.toLocaleString('en-US', { timeZone: tz });
+    const utcDate = new Date(utcStr);
+    const tzDate = new Date(tzStr);
+    return Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
+  } catch {
+    return 0;
+  }
+}
+
 function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
@@ -178,7 +204,9 @@ export default function PatientsPage() {
   const [importing, setImporting] = useState(false);
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [importError, setImportError] = useState<string | null>(null);
-  const [tzOffsetMins, setTzOffsetMins] = useState(0);
+  const [selectedTimezone, setSelectedTimezone] = useState('auto');
+  const [customOffsetMins, setCustomOffsetMins] = useState(0);
+  const tzOffsetMins = selectedTimezone === 'custom' ? customOffsetMins : getTimezoneOffsetMinutes(selectedTimezone);
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -189,6 +217,8 @@ export default function PatientsPage() {
   const [newCalColor, setNewCalColor] = useState('#3b82f6');
   const [savingCalendars, setSavingCalendars] = useState(false);
   const [calendarReloadKey, setCalendarReloadKey] = useState(0);
+  const [appointmentTypes, setAppointmentTypes] = useState<{id: string; name: string; platform: string; active: boolean}[]>([]);
+  const [practiceLocations, setPracticeLocations] = useState<{id: string; name: string; type: string; active: boolean}[]>([]);
   const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
   const slots = useMemo(() => generateTimeSlots(), []);
@@ -229,6 +259,24 @@ export default function PatientsPage() {
     const weekEnd = addDays(weekStart, 7);
     return events.filter(e => e.start >= weekStart && e.start < weekEnd).length;
   }, [events]);
+
+  useEffect(() => {
+    async function loadSettingsData() {
+      try {
+        const [typesRes, locsRes] = await Promise.all([
+          fetch('/api/settings/appointment-types'),
+          fetch('/api/settings/locations'),
+        ]);
+        const typesData = await typesRes.json();
+        const locsData = await locsRes.json();
+        if (typesData.ok) setAppointmentTypes((typesData.types || []).filter((t: any) => t.active));
+        if (locsData.ok) setPracticeLocations((locsData.locations || []).filter((l: any) => l.active));
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
+    }
+    loadSettingsData();
+  }, []);
 
   useEffect(() => {
     async function loadCalendarEvents() {
@@ -413,19 +461,33 @@ export default function PatientsPage() {
               </div>
             </div>
             <div className="w-full lg:w-[280px]">
-              <label className="text-sm text-gray-400">Timezone correction (minutes)</label>
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="range"
-                  min={-720}
-                  max={720}
-                  step={15}
-                  value={tzOffsetMins}
-                  onChange={(e) => setTzOffsetMins(Number(e.target.value))}
-                  className="w-full"
-                />
-                <div className="min-w-[60px] text-sm text-gray-200 text-right">{tzOffsetMins >= 0 ? '+' : ''}{tzOffsetMins}m</div>
-              </div>
+              <label className="text-sm text-gray-400">Timezone</label>
+              <select
+                value={selectedTimezone}
+                onChange={(e) => setSelectedTimezone(e.target.value)}
+                className="w-full mt-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </select>
+              {selectedTimezone === 'custom' && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="range"
+                    min={-720}
+                    max={720}
+                    step={15}
+                    value={customOffsetMins}
+                    onChange={(e) => setCustomOffsetMins(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="min-w-[60px] text-sm text-gray-200 text-right">{customOffsetMins >= 0 ? '+' : ''}{customOffsetMins}m</div>
+                </div>
+              )}
+              {selectedTimezone !== 'custom' && selectedTimezone !== 'auto' && (
+                <p className="text-xs text-gray-500 mt-1">UTC {tzOffsetMins >= 0 ? '+' : ''}{Math.floor(tzOffsetMins / 60)}:{String(Math.abs(tzOffsetMins % 60)).padStart(2, '0')}</p>
+              )}
             </div>
             <div className="w-full lg:w-[200px]">
               <label className="text-sm text-gray-400">Or upload .ics file</label>
@@ -702,21 +764,47 @@ export default function PatientsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1">Appointment Type</label>
-                  <input
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    value={selectedEvent.appointment?.type || ''}
-                    onChange={(e) => updateSelectedAppt({ type: e.target.value })}
-                    placeholder="Follow-up"
-                  />
+                  {appointmentTypes.length > 0 ? (
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={selectedEvent.appointment?.type || ''}
+                      onChange={(e) => updateSelectedAppt({ type: e.target.value })}
+                    >
+                      <option value="">Select type...</option>
+                      {appointmentTypes.map((t) => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={selectedEvent.appointment?.type || ''}
+                      onChange={(e) => updateSelectedAppt({ type: e.target.value })}
+                      placeholder="Follow-up"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1">Location</label>
-                  <input
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    value={selectedEvent.location || ''}
-                    onChange={(e) => updateSelectedEvent({ location: e.target.value })}
-                    placeholder="Telehealth"
-                  />
+                  {practiceLocations.length > 0 ? (
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={selectedEvent.location || ''}
+                      onChange={(e) => updateSelectedEvent({ location: e.target.value })}
+                    >
+                      <option value="">Select location...</option>
+                      {practiceLocations.map((l) => (
+                        <option key={l.id} value={l.name}>{l.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={selectedEvent.location || ''}
+                      onChange={(e) => updateSelectedEvent({ location: e.target.value })}
+                      placeholder="Telehealth"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1031,20 +1119,36 @@ export default function PatientsPage() {
               <div>
                 <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-amber-400">schedule</span>
-                  Timezone Correction
+                  Timezone
                 </h4>
-                <label className="text-xs text-gray-400 mb-1 block">
-                  Offset: {tzOffsetMins >= 0 ? '+' : ''}{Math.round(tzOffsetMins)} minutes
-                </label>
-                <input
-                  type="range"
-                  min={-720}
-                  max={720}
-                  step={15}
-                  value={tzOffsetMins}
-                  onChange={(e) => setTzOffsetMins(Number(e.target.value))}
-                  className="w-full"
-                />
+                <select
+                  value={selectedTimezone}
+                  onChange={(e) => setSelectedTimezone(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {TIMEZONE_OPTIONS.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+                {selectedTimezone === 'custom' && (
+                  <div className="mt-2">
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Offset: {customOffsetMins >= 0 ? '+' : ''}{Math.round(customOffsetMins)} minutes
+                    </label>
+                    <input
+                      type="range"
+                      min={-720}
+                      max={720}
+                      step={15}
+                      value={customOffsetMins}
+                      onChange={(e) => setCustomOffsetMins(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+                {selectedTimezone !== 'custom' && selectedTimezone !== 'auto' && (
+                  <p className="text-xs text-gray-500 mt-1">UTC {tzOffsetMins >= 0 ? '+' : ''}{Math.floor(tzOffsetMins / 60)}:{String(Math.abs(tzOffsetMins % 60)).padStart(2, '0')}</p>
+                )}
               </div>
 
               {/* Calendar Legend */}
