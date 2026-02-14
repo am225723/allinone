@@ -1,17 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
 let supabaseInstance: SupabaseClient | null = null;
 
-// Create a chainable mock that returns itself for any method call
 function createChainableMock(): any {
-  const mock: any = {
-    data: null,
-    error: { message: 'Supabase not configured' },
-  };
-  
   const chainable: any = new Proxy({}, {
     get(_, prop) {
       if (prop === 'then') {
@@ -26,17 +17,25 @@ function createChainableMock(): any {
 
 function getSupabaseClient(): SupabaseClient {
   if (!supabaseInstance) {
-    if (!supabaseUrl || !supabaseKey) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!url || !key) {
       console.warn('Supabase credentials not configured. Using mock client.');
       return {
         from: () => createChainableMock(),
       } as unknown as SupabaseClient;
     }
     
-    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+    supabaseInstance = createClient(url, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
       },
     });
   }
@@ -55,13 +54,21 @@ export const supabaseServer = new Proxy({} as SupabaseClient, {
 });
 
 export function createSupabaseServer() {
-  if (!supabaseUrl || !supabaseKey) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  if (!url || !key) {
     throw new Error('Supabase credentials not configured');
   }
-  return createClient(supabaseUrl, supabaseKey, {
+  return createClient(url, key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
     },
   });
 }

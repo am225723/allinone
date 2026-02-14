@@ -1,0 +1,215 @@
+
+> unified-communications-dashboard@1.0.0 dev
+> next dev -H 0.0.0.0 -p 5000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:5000
+  - Network:      http://0.0.0.0:5000
+
+ ✓ Starting...
+ ✓ Ready in 3.5s
+ ○ Compiling / ...
+ ✓ Compiled / in 6.4s (567 modules)
+ GET / 200 in 7294ms
+ ✓ Compiled in 660ms (290 modules)
+ ○ Compiling /api/auth/check-role ...
+ ✓ Compiled /api/auth/check-role in 732ms (182 modules)
+ GET /api/auth/check-role 401 in 876ms
+ GET /api/auth/check-role 401 in 24ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 773ms (747 modules)
+ GET /api/auth/check-role 401 in 946ms
+ DELETE /api/auth/pin 200 in 1031ms
+ DELETE /api/auth/pin 200 in 723ms
+ DELETE /api/auth/pin 200 in 18ms
+ GET /api/auth/check-role 401 in 12ms
+ GET /api/auth/check-role 401 in 67ms
+ ○ Compiling /api/auth/webauthn/authenticate ...
+ ✓ Compiled /api/auth/webauthn/authenticate in 760ms (611 modules)
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 1459ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 419ms
+ GET / 200 in 139ms
+ GET /api/auth/check-role 401 in 25ms
+ DELETE /api/auth/pin 200 in 24ms
+ GET /api/auth/check-role 401 in 24ms
+ GET /api/auth/check-role 401 in 20ms
+ DELETE /api/auth/pin 200 in 17ms
+ DELETE /api/auth/pin 200 in 9ms
+ GET /api/auth/check-role 401 in 12ms
+ GET /api/auth/check-role 401 in 24ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 605ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 212ms
+ GET / 200 in 54ms
+ GET /api/auth/check-role 401 in 24ms
+ GET /api/auth/check-role 401 in 24ms
+ DELETE /api/auth/pin 200 in 29ms
+ GET /api/auth/check-role 401 in 26ms
+ DELETE /api/auth/pin 200 in 38ms
+ DELETE /api/auth/pin 200 in 13ms
+ GET /api/auth/check-role 401 in 8ms
+ GET /api/auth/check-role 401 in 17ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 371ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 322ms
+ GET / 200 in 41ms
+ GET /api/auth/check-role 401 in 14ms
+ GET /api/auth/check-role 401 in 14ms
+ DELETE /api/auth/pin 200 in 18ms
+ GET /api/auth/check-role 401 in 14ms
+ DELETE /api/auth/pin 200 in 18ms
+ DELETE /api/auth/pin 200 in 11ms
+ GET /api/auth/check-role 401 in 11ms
+ GET /api/auth/check-role 401 in 9ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 311ms
+ GET /api/auth/webauthn/authenticate?checkOnly=true 200 in 177ms
+ POST /api/auth/pin 200 in 430ms
+ GET /api/auth/check-role 200 in 338ms
+ GET /api/auth/check-role 200 in 140ms
+ ✓ Compiled /api/patient-stats in 294ms (189 modules)
+ ○ Compiling /api/tasks ...
+ ✓ Compiled /api/tasks in 511ms (353 modules)
+ GET /api/tasks?status=pending,in_progress 200 in 1183ms
+ GET /api/notifications?type=count 200 in 1714ms
+ GET /api/notifications?limit=20 200 in 1766ms
+ GET /api/patient-stats 200 in 1775ms
+ GET /api/stats?type=activity&limit=5 200 in 1666ms
+ GET /api/auth/check-role 200 in 311ms
+ GET /api/stats 200 in 2300ms
+ GET /api/stats?type=activity&limit=5 200 in 302ms
+ GET /api/notifications?type=count 200 in 203ms
+ GET /api/auth/check-role 200 in 158ms
+ GET /api/notifications?limit=20 200 in 198ms
+ GET /api/patient-stats 200 in 324ms
+ GET /api/auth/check-role 200 in 141ms
+ GET /api/stats 200 in 644ms
+ ✓ Compiled /settings in 443ms (638 modules)
+ GET / 200 in 122ms
+ GET /api/auth/check-role 200 in 313ms
+ GET /api/auth/check-role 200 in 161ms
+ GET /api/notifications?limit=20 200 in 552ms
+ GET /api/notifications?type=count 200 in 565ms
+ GET /api/patient-stats 200 in 572ms
+ GET /api/tasks?status=pending,in_progress 200 in 236ms
+ GET /api/auth/check-role 200 in 166ms
+ GET /api/notifications?type=count 200 in 175ms
+ GET /api/notifications?limit=20 200 in 230ms
+ GET /api/stats?type=activity&limit=5 200 in 822ms
+ GET /api/patient-stats 200 in 203ms
+ GET /api/tasks?status=pending,in_progress 200 in 144ms
+ GET /api/auth/check-role 200 in 158ms
+ GET /api/stats 200 in 1133ms
+ GET /api/auth/check-role 200 in 189ms
+ GET /api/stats?type=activity&limit=5 200 in 293ms
+ GET /api/auth/check-role 200 in 146ms
+ GET /api/stats 200 in 583ms
+ ○ Compiling /settings/calendars ...
+ ✓ Compiled /settings/calendars in 1469ms (646 modules)
+ ✓ Compiled /api/calendar/urls in 172ms (365 modules)
+ GET /api/calendar/urls 200 in 477ms
+ GET /api/calendar/urls 200 in 153ms
+ GET /api/notifications?type=count 200 in 356ms
+ GET /api/auth/check-role 200 in 346ms
+ GET /api/notifications?type=count 200 in 243ms
+ GET /api/auth/check-role 200 in 467ms
+ ✓ Compiled /api/auth/activity in 446ms (196 modules)
+ POST /api/auth/activity 200 in 574ms
+ GET /api/notifications?type=count 200 in 375ms
+ POST /api/auth/activity 200 in 45ms
+ GET /api/notifications?type=count 200 in 365ms
+ GET /api/auth/check-role 200 in 392ms
+ GET /api/notifications?type=count 200 in 217ms
+ POST /api/auth/activity 200 in 45ms
+ GET /api/notifications?type=count 200 in 243ms
+ GET /api/auth/check-role 200 in 270ms
+ POST /api/auth/activity 200 in 39ms
+ GET /api/auth/check-role 200 in 304ms
+ GET /api/notifications?type=count 200 in 199ms
+ POST /api/auth/activity 200 in 88ms
+ GET /api/auth/check-role 200 in 264ms
+ GET /api/notifications?type=count 200 in 240ms
+ GET /api/auth/check-role 200 in 241ms
+ GET /api/notifications?type=count 200 in 267ms
+Error saving calendar URLs: {
+  code: '42501',
+  details: null,
+  hint: null,
+  message: 'new row violates row-level security policy for table "app_settings"'
+}
+ POST /api/calendar/urls 500 in 529ms
+ POST /api/auth/activity 200 in 32ms
+ GET /api/auth/check-role 200 in 197ms
+ GET /api/notifications?type=count 200 in 224ms
+ GET /api/notifications?type=count 200 in 246ms
+ POST /api/auth/activity 200 in 41ms
+ GET /api/notifications?type=count 200 in 215ms
+ GET /api/auth/check-role 200 in 267ms
+ GET /api/notifications?type=count 200 in 228ms
+ POST /api/auth/activity 200 in 45ms
+ GET /api/notifications?type=count 200 in 323ms
+ GET /api/auth/check-role 200 in 405ms
+ POST /api/auth/activity 200 in 42ms
+ GET /api/notifications?type=count 200 in 339ms
+ GET /api/auth/check-role 200 in 353ms
+ POST /api/auth/activity 200 in 43ms
+ GET /api/notifications?type=count 200 in 353ms
+ GET /api/auth/check-role 200 in 366ms
+ POST /api/auth/activity 200 in 44ms
+ GET /api/notifications?type=count 200 in 264ms
+ GET /api/auth/check-role 200 in 288ms
+ POST /api/auth/activity 200 in 84ms
+ GET /api/notifications?type=count 200 in 245ms
+ GET /api/auth/check-role 200 in 285ms
+ GET / 200 in 154ms
+ GET /api/auth/check-role 200 in 383ms
+ GET /api/auth/check-role 200 in 153ms
+ GET /api/notifications?limit=20 200 in 297ms
+ GET /api/notifications?type=count 200 in 584ms
+ GET /api/patient-stats 200 in 592ms
+ GET /api/auth/check-role 200 in 199ms
+ GET /api/tasks?status=pending,in_progress 200 in 630ms
+ GET /api/stats?type=activity&limit=5 200 in 742ms
+ GET /api/auth/check-role 200 in 163ms
+ GET /api/patient-stats 200 in 179ms
+ GET /api/notifications?limit=20 200 in 217ms
+ GET /api/notifications?type=count 200 in 221ms
+ GET /api/tasks?status=pending,in_progress 200 in 154ms
+ GET /api/stats 200 in 1001ms
+ GET /api/auth/check-role 200 in 147ms
+ GET /api/stats?type=activity&limit=5 200 in 307ms
+ GET /api/auth/check-role 200 in 144ms
+ GET /api/stats 200 in 605ms
+ GET /api/auth/check-role 200 in 133ms
+ GET /api/auth/check-role 200 in 132ms
+ GET /api/patient-stats 200 in 239ms
+ GET /api/notifications?type=count 200 in 274ms
+ GET /api/stats?type=activity&limit=5 200 in 411ms
+ GET /api/tasks?status=pending,in_progress 200 in 410ms
+ GET /api/stats 200 in 611ms
+ POST /api/auth/activity 200 in 67ms
+ GET /api/patient-stats 200 in 308ms
+ GET /api/auth/check-role 200 in 326ms
+ GET /api/notifications?type=count 200 in 365ms
+ GET /api/stats?type=activity&limit=5 200 in 466ms
+ GET /api/tasks?status=pending,in_progress 200 in 444ms
+ GET /api/stats 200 in 713ms
+ ○ Compiling /clients ...
+ ✓ Compiled /patients in 2.1s (735 modules)
+ ✓ Compiled /api/calendar/urls in 114ms (409 modules)
+ GET /api/calendar/urls 200 in 403ms
+ GET /api/calendar/urls 200 in 230ms
+ ✓ Compiled /api/clients in 364ms (199 modules)
+ POST /api/clients 200 in 704ms
+ POST /api/clients 200 in 710ms
+ GET /api/notifications?type=count 200 in 412ms
+ ✓ Compiled /settings in 262ms (414 modules)
+ GET /api/calendar/urls 200 in 223ms
+ GET /api/calendar/urls 200 in 164ms
+Error saving calendar URLs: {
+  code: '42501',
+  details: null,
+  hint: null,
+  message: 'new row violates row-level security policy for table "app_settings"'
+}
+ POST /api/calendar/urls 500 in 524ms
+ POST /api/auth/activity 200 in 129ms
+ GET /api/auth/check-role 200 in 413ms
+ GET /api/notifications?type=count 200 in 406ms
