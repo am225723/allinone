@@ -234,8 +234,6 @@ export default function PatientsPage() {
   const [practiceLocations, setPracticeLocations] = useState<{id: string; name: string; type: string; active: boolean}[]>([]);
   const [leftCalendarName, setLeftCalendarName] = useState('Calendar 1');
   const [rightCalendarName, setRightCalendarName] = useState('Calendar 2');
-  const [leftEditMode, setLeftEditMode] = useState(false);
-  const [rightEditMode, setRightEditMode] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState('');
   const [loadingClients, setLoadingClients] = useState(false);
@@ -760,89 +758,14 @@ export default function PatientsPage() {
               <div className="grid grid-cols-2 gap-4" style={{ minHeight: `${slots.length * 64}px` }}>
                 {/* Left Column - First Calendar */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10" style={{ height: '40px' }}>
+                  <div className="mb-2 pb-2 border-b border-white/10" style={{ height: '40px' }}>
                     <input
                       type="text"
                       value={leftCalendarName}
                       onChange={(e) => setLeftCalendarName(e.target.value)}
                       className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
                     />
-                    <button
-                      onClick={() => setLeftEditMode(!leftEditMode)}
-                      className={`text-gray-400 hover:text-white transition ${leftEditMode ? 'text-blue-400' : ''}`}
-                      title="Edit settings"
-                    >
-                      <span className="material-symbols-outlined text-sm">{leftEditMode ? 'check' : 'edit'}</span>
-                    </button>
                   </div>
-                  
-                  {leftEditMode && (
-                    <>
-                      {/* Time Adjustment for Left Calendar */}
-                      <div className="mb-2 p-2 bg-white/5 rounded-lg">
-                        <label className="text-xs text-gray-400 block mb-1">Time Adjustment</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min="-720"
-                            max="720"
-                            step="15"
-                            value={leftTimeOffset}
-                            onChange={(e) => setLeftTimeOffset(Number(e.target.value))}
-                            className="w-full"
-                          />
-                          <div className="min-w-[50px] text-xs text-gray-200 text-right">
-                            {leftTimeOffset >= 0 ? '+' : ''}{leftTimeOffset}m
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3 p-2 bg-white/5 rounded-lg space-y-2">
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={leftDisplayOptions.showTime}
-                            onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showTime: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Time
-                        </label>
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={leftDisplayOptions.showLocation}
-                            onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showLocation: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Location
-                        </label>
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={leftDisplayOptions.showCalendarName}
-                            onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showCalendarName: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Calendar Name
-                        </label>
-                        {/* Appointment Type Colors */}
-                        <div className="pt-2 border-t border-white/10">
-                          <label className="text-xs text-gray-400 block mb-2">Appointment Type Colors</label>
-                          {Object.entries(appointmentTypeColors).filter(([key]) => key !== 'default').map(([type, color]) => (
-                            <div key={type} className="flex items-center gap-2 mb-1">
-                              <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => setAppointmentTypeColors({...appointmentTypeColors, [type]: e.target.value})}
-                                className="w-6 h-6 rounded cursor-pointer"
-                              />
-                              <span className="text-xs text-gray-300 capitalize">{type}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
 
                   {/* Time slots */}
                   {slots.map((s, idx) => (
@@ -910,75 +833,15 @@ export default function PatientsPage() {
 
                 {/* Right Column - Second Calendar - No time slots */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                  <div className="mb-2 pb-2 border-b border-white/10">
                     <input
                       type="text"
                       value={rightCalendarName}
                       onChange={(e) => setRightCalendarName(e.target.value)}
                       className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
                     />
-                    <button
-                      onClick={() => setRightEditMode(!rightEditMode)}
-                      className={`text-gray-400 hover:text-white transition ${rightEditMode ? 'text-blue-400' : ''}`}
-                      title="Edit settings"
-                    >
-                      <span className="material-symbols-outlined text-sm">{rightEditMode ? 'check' : 'edit'}</span>
-                    </button>
                   </div>
-                  
-                  {rightEditMode && (
-                    <>
-                      {/* Time Adjustment for Right Calendar */}
-                      <div className="mb-2 p-2 bg-white/5 rounded-lg">
-                        <label className="text-xs text-gray-400 block mb-1">Time Adjustment</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min="-720"
-                            max="720"
-                            step="15"
-                            value={rightTimeOffset}
-                            onChange={(e) => setRightTimeOffset(Number(e.target.value))}
-                            className="w-full"
-                          />
-                          <div className="min-w-[50px] text-xs text-gray-200 text-right">
-                            {rightTimeOffset >= 0 ? '+' : ''}{rightTimeOffset}m
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3 p-2 bg-white/5 rounded-lg space-y-2">
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={rightDisplayOptions.showTime}
-                            onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showTime: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Time
-                        </label>
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={rightDisplayOptions.showLocation}
-                            onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showLocation: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Location
-                        </label>
-                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={rightDisplayOptions.showCalendarName}
-                            onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showCalendarName: e.target.checked})}
-                            className="rounded bg-white/10 border-white/20"
-                          />
-                          Show Calendar Name
-                        </label>
-                      </div>
-                    </>
-                  )}
-                  
+
                   {/* No time slots for right calendar - events listed vertically */}
 
                   {/* Event blocks for calendar 2 (even index) - time-based positioning */}
@@ -1486,6 +1349,159 @@ export default function PatientsPage() {
                 {selectedTimezone !== 'custom' && selectedTimezone !== 'auto' && (
                   <p className="text-xs text-gray-500 mt-1">UTC {tzOffsetMins >= 0 ? '+' : ''}{Math.floor(tzOffsetMins / 60)}:{String(Math.abs(tzOffsetMins % 60)).padStart(2, '0')}</p>
                 )}
+              </div>
+
+              {/* Daily Agenda Settings */}
+              <div className="pt-4 border-t border-white/10">
+                <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-400">calendar_view_day</span>
+                  Daily Agenda Settings
+                </h4>
+
+                {/* Calendar Names */}
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Left Calendar Name</label>
+                    <input
+                      type="text"
+                      value={leftCalendarName}
+                      onChange={(e) => setLeftCalendarName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Right Calendar Name</label>
+                    <input
+                      type="text"
+                      value={rightCalendarName}
+                      onChange={(e) => setRightCalendarName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Time Adjustments */}
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Left Calendar Time Adjustment</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="-720"
+                        max="720"
+                        step="15"
+                        value={leftTimeOffset}
+                        onChange={(e) => setLeftTimeOffset(Number(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="min-w-[60px] text-xs text-gray-200 text-right">
+                        {leftTimeOffset >= 0 ? '+' : ''}{leftTimeOffset}m
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Right Calendar Time Adjustment</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="-720"
+                        max="720"
+                        step="15"
+                        value={rightTimeOffset}
+                        onChange={(e) => setRightTimeOffset(Number(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="min-w-[60px] text-xs text-gray-200 text-right">
+                        {rightTimeOffset >= 0 ? '+' : ''}{rightTimeOffset}m
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Display Options */}
+                <div className="mb-4">
+                  <label className="text-xs text-gray-400 mb-2 block">Display Options</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={leftDisplayOptions.showTime}
+                          onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showTime: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Left Calendar: Show Time
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={rightDisplayOptions.showTime}
+                          onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showTime: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Right: Show Time
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={leftDisplayOptions.showLocation}
+                          onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showLocation: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Left Calendar: Show Location
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={rightDisplayOptions.showLocation}
+                          onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showLocation: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Right: Show Location
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={leftDisplayOptions.showCalendarName}
+                          onChange={(e) => setLeftDisplayOptions({...leftDisplayOptions, showCalendarName: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Left Calendar: Show Calendar Name
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={rightDisplayOptions.showCalendarName}
+                          onChange={(e) => setRightDisplayOptions({...rightDisplayOptions, showCalendarName: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Right: Show Calendar Name
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appointment Type Colors */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-2 block">Appointment Type Colors</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(appointmentTypeColors).filter(([key]) => key !== 'default').map(([type, color]) => (
+                      <div key={type} className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => setAppointmentTypeColors({...appointmentTypeColors, [type]: e.target.value})}
+                          className="w-6 h-6 rounded cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-300 capitalize">{type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Calendar Legend */}
