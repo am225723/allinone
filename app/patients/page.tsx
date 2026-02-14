@@ -219,6 +219,14 @@ export default function PatientsPage() {
   const [calendarReloadKey, setCalendarReloadKey] = useState(0);
   const [appointmentTypes, setAppointmentTypes] = useState<{id: string; name: string; platform: string; active: boolean}[]>([]);
   const [practiceLocations, setPracticeLocations] = useState<{id: string; name: string; type: string; active: boolean}[]>([]);
+  const [leftCalendarName, setLeftCalendarName] = useState('Calendar 1');
+  const [rightCalendarName, setRightCalendarName] = useState('Calendar 2');
+  const [showDisplayOptions, setShowDisplayOptions] = useState(false);
+  const [displayOptions, setDisplayOptions] = useState({
+    showTime: true,
+    showLocation: true,
+    showCalendarName: true,
+  });
   const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
   const slots = useMemo(() => generateTimeSlots(), []);
@@ -652,9 +660,54 @@ export default function PatientsPage() {
               <div className="grid grid-cols-2 gap-4" style={{ minHeight: `${slots.length * 64}px` }}>
                 {/* Left Column - First Calendar */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                  <div className="text-xs font-medium text-white mb-2 pb-2 border-b border-white/10">
-                    {savedCalendars[0]?.name || 'Calendar 1'}
+                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                    <input
+                      type="text"
+                      value={leftCalendarName}
+                      onChange={(e) => setLeftCalendarName(e.target.value)}
+                      className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
+                    />
+                    <button
+                      onClick={() => setShowDisplayOptions(!showDisplayOptions)}
+                      className="text-gray-400 hover:text-white transition"
+                      title="Display options"
+                    >
+                      <span className="material-symbols-outlined text-sm">visibility</span>
+                    </button>
                   </div>
+                  
+                  {showDisplayOptions && (
+                    <div className="mb-3 p-2 bg-white/5 rounded-lg space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={displayOptions.showTime}
+                          onChange={(e) => setDisplayOptions({...displayOptions, showTime: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Show Time
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={displayOptions.showLocation}
+                          onChange={(e) => setDisplayOptions({...displayOptions, showLocation: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Show Location
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={displayOptions.showCalendarName}
+                          onChange={(e) => setDisplayOptions({...displayOptions, showCalendarName: e.target.checked})}
+                          className="rounded bg-white/10 border-white/20"
+                        />
+                        Show Calendar Name
+                      </label>
+                    </div>
+                  )}
+
                   {/* Time slots */}
                   {slots.map((s, idx) => (
                     <div
@@ -698,9 +751,11 @@ export default function PatientsPage() {
                             <div className="min-w-0">
                               <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
                               <p className="text-xs mt-0.5 text-white/80">
-                                {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                                {displayOptions.showTime && `${timeLabel(ev.start)} - ${timeLabel(ev.end)} `}
+                                {displayOptions.showTime && displayOptions.showLocation && '| '}
+                                {displayOptions.showLocation && (ev.location || 'No location')}
                               </p>
-                              {ev.calendarName && (
+                              {displayOptions.showCalendarName && ev.calendarName && (
                                 <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
                               )}
                             </div>
@@ -713,57 +768,47 @@ export default function PatientsPage() {
                     })}
                 </div>
 
-                {/* Right Column - Second Calendar */}
+                {/* Right Column - Second Calendar - No time slots */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
-                  <div className="text-xs font-medium text-white mb-2 pb-2 border-b border-white/10">
-                    {savedCalendars[1]?.name || savedCalendars[0]?.name ? 'Calendar 2' : 'Other Calendars'}
+                  <div className="mb-2 pb-2 border-b border-white/10">
+                    <input
+                      type="text"
+                      value={rightCalendarName}
+                      onChange={(e) => setRightCalendarName(e.target.value)}
+                      className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
+                    />
                   </div>
-                  {/* Time slots */}
-                  {slots.map((s, idx) => (
-                    <div
-                      key={s.hour}
-                      className="border-t border-white/5 h-16 relative"
-                    >
-                      <span className="absolute left-0 top-1 text-xs text-gray-500 font-mono w-12">
-                        {s.label}
-                      </span>
-                    </div>
-                  ))}
+                  
+                  {/* No time slots for right calendar - events listed vertically */}
 
-                  {/* Event blocks for calendar 2 (even index) */}
+                  {/* Event blocks for calendar 2 (even index) - vertical list */}
                   {eventsForDay
                     .filter((ev, idx) => idx % 2 === 1)
-                    .map((ev) => {
-                      const dayStart = new Date(selectedDay);
-                      dayStart.setHours(8, 0, 0, 0);
-                      const totalHours = slots.length;
-
-                      const startH = clamp(0, hoursBetween(dayStart, ev.start), totalHours);
-                      const endH = clamp(0, hoursBetween(dayStart, ev.end), totalHours);
-                      const top = startH * 64;
-                      const height = Math.max(50, (endH - startH) * 64);
-
+                    .map((ev, idx) => {
                       const summaryLower = (ev.summary || '').toLowerCase();
                       const locationLower = (ev.location || '').toLowerCase();
                       const isTelehealth = locationLower.includes('tele') || summaryLower.includes('telehealth') || summaryLower.includes('video');
                       const isIntake = summaryLower.includes('intake') || summaryLower.includes('evaluation') || summaryLower.includes('assessment');
                       
                       const calColor = ev.calendarColor || (isIntake ? '#ef4444' : '#3b82f6');
+                      const top = idx * 80;
 
                       return (
                         <button
                           key={ev.id}
                           onClick={() => setSelectedEventId(ev.id)}
-                          className={`absolute left-14 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
-                          style={{ top: `${top}px`, height: `${height}px`, backgroundColor: calColor, borderColor: calColor }}
+                          className={`absolute left-0 right-2 rounded-lg p-3 shadow-lg z-10 border text-left transition-all hover:scale-[1.01] ${selectedEventId === ev.id ? 'ring-2 ring-white/50' : ''}`}
+                          style={{ top: `${top}px`, height: 'auto', minHeight: '70px', backgroundColor: calColor, borderColor: calColor }}
                         >
                           <div className="flex justify-between items-start text-white">
                             <div className="min-w-0">
                               <h3 className="font-semibold text-sm truncate">{ev.summary}</h3>
                               <p className="text-xs mt-0.5 text-white/80">
-                                {timeLabel(ev.start)} - {timeLabel(ev.end)} | {ev.location || 'No location'}
+                                {displayOptions.showTime && `${timeLabel(ev.start)} - ${timeLabel(ev.end)} `}
+                                {displayOptions.showTime && displayOptions.showLocation && '| '}
+                                {displayOptions.showLocation && (ev.location || 'No location')}
                               </p>
-                              {ev.calendarName && (
+                              {displayOptions.showCalendarName && ev.calendarName && (
                                 <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
                               )}
                             </div>
