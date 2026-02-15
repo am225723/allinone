@@ -12,6 +12,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Reject registration for default user
+    if (userId === 'default') {
+      return NextResponse.json({ 
+        error: 'Biometric authentication requires a proper user account. Please create a user account through admin settings.' 
+      }, { status: 400 });
+    }
+
     const userName = userId === 'default' ? 'User' : `User ${userId}`;
     const options = await getRegistrationOptions(userId, userName);
 

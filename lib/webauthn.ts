@@ -43,6 +43,11 @@ interface StoredCredential {
 }
 
 export async function getRegistrationOptions(userId: string, userName: string) {
+  // Skip registration for default user - doesn't have a UUID in comm_users
+  if (userId === 'default') {
+    throw new Error('Biometric registration requires a proper user account');
+  }
+
   const { data: existingCredentials } = await supabaseServer
     .from('webauthn_credentials')
     .select('credential_id')
@@ -75,6 +80,11 @@ export async function verifyAndSaveRegistration(
   expectedChallenge: string,
   deviceName?: string
 ) {
+  // Skip saving for default user - doesn't have a UUID in comm_users
+  if (userId === 'default') {
+    throw new Error('Biometric registration requires a proper user account');
+  }
+
   const verification = await verifyRegistrationResponse({
     response,
     expectedChallenge,

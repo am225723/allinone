@@ -24,7 +24,8 @@ export default function BiometricEnrollment({ onComplete, onSkip }: BiometricEnr
       try {
         const res = await fetch('/api/auth/webauthn/credentials');
         const data = await res.json();
-        if (data.credentials?.length === 0) {
+        // Don't show for default user or if credentials already exist
+        if (!data.isDefaultUser && data.credentials?.length === 0) {
           setTimeout(() => setShow(true), 1000);
         }
       } catch {
@@ -71,6 +72,13 @@ export default function BiometricEnrollment({ onComplete, onSkip }: BiometricEnr
         }, 2000);
       } else {
         setError(result.error || 'Failed to register biometric');
+        // If error indicates default user, don't show prompt again
+        if (result.error?.includes('proper user account')) {
+          setTimeout(() => {
+            setShow(false);
+            onSkip?.();
+          }, 3000);
+        }
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'NotAllowedError') {

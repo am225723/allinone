@@ -12,8 +12,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Return early for default user - biometrics not supported
+    if (userId === 'default') {
+      return NextResponse.json({ 
+        credentials: [], 
+        isDefaultUser: true,
+        message: 'Biometrics not available for default PIN login' 
+      });
+    }
+
     const credentials = await getUserCredentials(userId);
-    return NextResponse.json({ credentials });
+    return NextResponse.json({ 
+      credentials, 
+      isDefaultUser: false 
+    });
   } catch (error) {
     console.error('Get credentials error:', error);
     return NextResponse.json({ error: 'Failed to fetch credentials' }, { status: 500 });
