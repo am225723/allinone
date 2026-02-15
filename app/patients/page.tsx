@@ -1430,7 +1430,7 @@ export default function PatientsPage() {
                     >
                       <option value="">All Calendars</option>
                       {savedCalendars.filter(c => c.enabled).map(cal => (
-                        <option key={cal.id || cal.url} value={cal.id || cal.url}>{cal.name}</option>
+                        <option key={cal.url} value={cal.url}>{cal.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1443,7 +1443,7 @@ export default function PatientsPage() {
                     >
                       <option value="">All Calendars</option>
                       {savedCalendars.filter(c => c.enabled).map(cal => (
-                        <option key={cal.id || cal.url} value={cal.id || cal.url}>{cal.name}</option>
+                        <option key={cal.url} value={cal.url}>{cal.name}</option>
                       ))}
                     </select>
                   </div>
