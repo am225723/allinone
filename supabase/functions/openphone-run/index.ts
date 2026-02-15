@@ -283,7 +283,7 @@ Respond in JSON format:
 
       const status = 'completed'
       await supabase.from('runs')
-        .update({ status, checkpoint: newCheckpoint, updated_at: new Date().toISOString() })
+        .update({ status, checkpoint: newCheckpoint, processed, updated_at: new Date().toISOString() })
         .eq('id', runId)
 
       return new Response(
@@ -300,7 +300,7 @@ Respond in JSON format:
       }
 
       await supabase.from('runs')
-        .update({ status: 'failed', checkpoint: failCheckpoint, updated_at: new Date().toISOString() })
+        .update({ status: 'failed', checkpoint: failCheckpoint, processed, updated_at: new Date().toISOString() })
         .eq('id', runId)
 
       throw e

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS runs (
   end_date DATE NOT NULL,
   status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'paused', 'completed', 'failed')),
   checkpoint JSONB,
+  processed INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
