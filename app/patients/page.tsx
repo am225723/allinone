@@ -31,6 +31,7 @@ type CalendarEvent = {
     type?: string;
     notes?: string;
   };
+  _side?: 'left' | 'right';
 };
 
 const TIMEZONE_OPTIONS = [
@@ -234,6 +235,8 @@ export default function PatientsPage() {
   const [practiceLocations, setPracticeLocations] = useState<{id: string; name: string; type: string; active: boolean}[]>([]);
   const [leftCalendarName, setLeftCalendarName] = useState('Calendar 1');
   const [rightCalendarName, setRightCalendarName] = useState('Calendar 2');
+  const [leftCalendarId, setLeftCalendarId] = useState<string | null>(null);
+  const [rightCalendarId, setRightCalendarId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState('');
   const [loadingClients, setLoadingClients] = useState(false);
@@ -298,10 +301,68 @@ export default function PatientsPage() {
 
   const eventsForDay = useMemo(() => {
     const day = selectedDay;
-    return events
+    const dayEvents = events
       .filter(e => sameDay(e.start, day))
       .sort((a, b) => a.start.getTime() - b.start.getTime());
-  }, [events, selectedDay]);
+
+    // Split events between left and right based on calendar selection
+    // If no specific calendar is selected, alternate events
+    // If specific calendars are selected, filter accordingly
+    
+    let leftEvents: CalendarEvent[] = [];
+    let rightEvents: CalendarEvent[] = [];
+
+    if (leftCalendarId && rightCalendarId) {
+      // Both calendars selected - filter each to its side
+      leftEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId === leftCalendarId;
+      });
+      rightEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId === rightCalendarId;
+      });
+    } else if (leftCalendarId) {
+      // Only left calendar selected
+      leftEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId === leftCalendarId;
+      });
+      rightEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId !== leftCalendarId;
+      });
+    } else if (rightCalendarId) {
+      // Only right calendar selected
+      rightEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId === rightCalendarId;
+      });
+      leftEvents = dayEvents.filter(e => {
+        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
+        return calendarId !== rightCalendarId;
+      });
+    } else {
+      // No specific selection - alternate events
+      dayEvents.forEach((ev, idx) => {
+        if (idx % 2 === 0) {
+          leftEvents.push(ev);
+        } else {
+          rightEvents.push(ev);
+        }
+      });
+    }
+
+    // Return combined array with left events first (even indices), then right events (odd indices)
+    const combined: CalendarEvent[] = [];
+    const maxLen = Math.max(leftEvents.length, rightEvents.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (leftEvents[i]) combined.push({ ...leftEvents[i], _side: 'left' as const });
+      if (rightEvents[i]) combined.push({ ...rightEvents[i], _side: 'right' as const });
+    }
+
+    return combined;
+  }, [events, selectedDay, leftCalendarId, rightCalendarId, savedCalendars]);
 
   const selectedEvent = useMemo(() => {
     if (!selectedEventId) return null;
@@ -779,9 +840,9 @@ export default function PatientsPage() {
                     </div>
                   ))}
 
-                  {/* Event blocks for calendar 1 (odd index) */}
+                  {/* Event blocks for calendar 1 (left side) */}
                   {eventsForDay
-                    .filter((ev, idx) => idx % 2 === 0)
+                    .filter((ev) => ev._side === 'left')
                     .map((ev) => {
                       const dayStart = new Date(selectedDay);
                       dayStart.setHours(8, 0, 0, 0);
@@ -844,9 +905,9 @@ export default function PatientsPage() {
 
                   {/* No time slots for right calendar - events listed vertically */}
 
-                  {/* Event blocks for calendar 2 (even index) - time-based positioning */}
+                  {/* Event blocks for calendar 2 (right side) - time-based positioning */}
                   {eventsForDay
-                    .filter((ev, idx) => idx % 2 === 1)
+                    .filter((ev) => ev._side === 'right')
                     .map((ev) => {
                       const dayStart = new Date(selectedDay);
                       dayStart.setHours(8, 0, 0, 0);
@@ -1357,6 +1418,36 @@ export default function PatientsPage() {
                   <span className="material-symbols-outlined text-purple-400">calendar_view_day</span>
                   Daily Agenda Settings
                 </h4>
+
+                {/* Calendar Selection */}
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Left Calendar Source</label>
+                    <select
+                      value={leftCalendarId || ''}
+                      onChange={(e) => setLeftCalendarId(e.target.value || null)}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">All Calendars</option>
+                      {savedCalendars.filter(c => c.enabled).map(cal => (
+                        <option key={cal.id || cal.url} value={cal.id || cal.url}>{cal.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Right Calendar Source</label>
+                    <select
+                      value={rightCalendarId || ''}
+                      onChange={(e) => setRightCalendarId(e.target.value || null)}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">All Calendars</option>
+                      {savedCalendars.filter(c => c.enabled).map(cal => (
+                        <option key={cal.id || cal.url} value={cal.id || cal.url}>{cal.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 {/* Calendar Names */}
                 <div className="space-y-3 mb-4">

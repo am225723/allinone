@@ -76,23 +76,31 @@ export default function AppShell({ children }: AppShellProps) {
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
-                  <Link href="/settings/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                    <span className="material-symbols-outlined">person</span>
-                    <span>Profile</span>
-                  </Link>
-                  <Link href="/settings" className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                    <span className="material-symbols-outlined">settings</span>
-                    <span>Settings</span>
-                  </Link>
-                  <Link href="/admin" className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                    <span className="material-symbols-outlined">admin_panel_settings</span>
-                    <span>Admin Panel</span>
-                  </Link>
+                  <div className="dropdown-item-group">
+                    <Link href="/settings/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                      <span className="material-symbols-outlined">person</span>
+                      <span>Profile</span>
+                    </Link>
+                  </div>
+                  <div className="dropdown-item-group">
+                    <Link href="/settings" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                      <span className="material-symbols-outlined">settings</span>
+                      <span>Settings</span>
+                    </Link>
+                  </div>
+                  <div className="dropdown-item-group">
+                    <Link href="/admin" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                      <span className="material-symbols-outlined">admin_panel_settings</span>
+                      <span>Admin Panel</span>
+                    </Link>
+                  </div>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout-item" onClick={handleLogout}>
-                    <span className="material-symbols-outlined">logout</span>
-                    Logout
-                  </button>
+                  <div className="dropdown-item-group">
+                    <button className="dropdown-item logout-item" onClick={handleLogout}>
+                      <span className="material-symbols-outlined">logout</span>
+                      Logout
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -121,6 +129,9 @@ export default function AppShell({ children }: AppShellProps) {
           padding: 8px;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
           z-index: 100;
+        }
+        .dropdown-item-group {
+          display: block;
         }
         .dropdown-item {
           display: flex;

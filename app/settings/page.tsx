@@ -1,6 +1,32 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearStatistics = async () => {
+    if (!confirm('Are you sure you want to clear all email processing statistics? This cannot be undone.')) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const res = await fetch('/api/settings/clear-statistics', { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) {
+        alert('Statistics cleared successfully!');
+      } else {
+        alert('Failed to clear statistics: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Failed to clear statistics. Please try again.');
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const settingsGroups = [
     {
       title: 'Account',
@@ -8,6 +34,7 @@ export default function SettingsPage() {
       color: 'text-primary',
       items: [
         { name: 'Profile', description: 'Manage your account details', href: '/settings/profile', icon: 'account_circle' },
+        { name: 'Email Signatures', description: 'Configure email signatures for responses', href: '/settings/email-signatures', icon: 'edit_note' },
         { name: 'Notifications', description: 'Configure notification preferences', href: '/settings/notifications', icon: 'notifications' },
         { name: 'Security', description: 'PIN and session management', href: '/settings/security', icon: 'lock' },
       ]
@@ -98,6 +125,19 @@ export default function SettingsPage() {
             </h3>
           </div>
           <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-red-500/10 rounded-xl">
+              <div>
+                <p className="font-medium">Clear Statistics</p>
+                <p className="text-sm text-gray-400">Clear all email processing statistics and activity logs</p>
+              </div>
+              <button 
+                className="btn btn-danger btn-sm" 
+                onClick={handleClearStatistics}
+                disabled={clearing}
+              >
+                {clearing ? 'Clearing...' : 'Clear Statistics'}
+              </button>
+            </div>
             <div className="flex items-center justify-between p-4 bg-red-500/10 rounded-xl">
               <div>
                 <p className="font-medium">Clear All Data</p>
