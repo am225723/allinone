@@ -38,7 +38,8 @@ serve(async (req) => {
 
     if (result.processed > 0 || result.draftsCreated > 0) {
       await supabase.from('notifications').insert({
-        type: 'system',
+        type: 'info',
+        channel: 'openphone',
         title: 'OpenPhone Cleanup Completed',
         message: `Processed ${result.processed || 0} conversations. Created ${result.draftsCreated || 0} drafts.`,
         priority: 'normal',

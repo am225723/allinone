@@ -82,7 +82,8 @@ serve(async (req) => {
     }
 
     await supabase.from('notifications').insert({
-      type: 'system',
+      type: 'info',
+      channel: 'system',
       title: 'Daily Summary Ready',
       message: `Yesterday: ${messagesProcessed || 0} messages, ${emailsProcessed || 0} emails, ${draftsCreated || 0} drafts, ${tasksCompleted || 0} tasks completed.`,
       priority: 'normal',

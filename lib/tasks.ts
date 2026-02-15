@@ -275,9 +275,12 @@ export async function bulkDeleteTasks(ids: string[]): Promise<{ ok: boolean; err
 async function createAssignmentNotification(task: Task): Promise<void> {
   try {
     await supabase.from('notifications').insert({
-      type: 'task_assigned',
+      type: 'info',
+      channel: 'system',
       title: 'New Task Assigned',
       message: `You have been assigned a new task: "${task.title}"`,
+      priority: task.priority === 'high' ? 'high' : 'normal',
+      read: false,
       metadata: {
         task_id: task.id,
         task_title: task.title,

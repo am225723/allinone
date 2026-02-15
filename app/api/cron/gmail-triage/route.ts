@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
 
     if (result.processed > 0 || result.draftsCreated > 0) {
       await supabaseServer.from('notifications').insert({
-        type: 'system',
+        type: 'info',
+        channel: 'gmail',
         title: 'Gmail Triage Completed',
         message: `Processed ${result.processed || 0} emails. Created ${result.draftsCreated || 0} drafts.`,
         priority: 'normal',

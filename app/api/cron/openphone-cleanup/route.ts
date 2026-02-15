@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
     const result = await response.json();
 
     await supabaseServer.from('notifications').insert({
-      type: 'system',
+      type: 'info',
+      channel: 'openphone',
       title: 'OpenPhone Cleanup Completed',
       message: `Processed ${result.processed || 0} conversations. ${result.errorsCount || 0} errors.`,
       priority: result.errorsCount > 0 ? 'high' : 'normal',

@@ -89,7 +89,8 @@ export async function GET(request: NextRequest) {
 
     if (tasksCreated > 0) {
       await supabaseServer.from('notifications').insert({
-        type: 'system',
+        type: tasksCreated >= 3 ? 'urgent' : 'info',
+        channel: 'system',
         title: 'Session Notes Needed',
         message: `${tasksCreated} session(s) from yesterday/today still need clinical notes.`,
         priority: tasksCreated >= 3 ? 'high' : 'normal',

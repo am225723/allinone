@@ -51,7 +51,8 @@ export async function GET(request: NextRequest) {
     });
 
     await supabaseServer.from('notifications').insert({
-      type: 'summary',
+      type: 'info',
+      channel: 'system',
       title: 'Daily Summary Available',
       message: `Yesterday: ${stats.totalConversations} conversations, ${stats.emailsProcessed} emails processed. ${stats.draftsCreated + stats.emailDraftsCreated} drafts created.`,
       priority: 'normal',
