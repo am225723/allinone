@@ -78,7 +78,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_notification_preferences_updated_at
+CREATE TRIGGER IF NOT EXISTS update_notification_preferences_updated_at
   BEFORE UPDATE ON notification_preferences
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
