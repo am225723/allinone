@@ -19,6 +19,7 @@ type CalendarEvent = {
   color?: string;
   calendarName?: string;
   calendarColor?: string;
+  calendarDisplayName?: string;
   client?: {
     name?: string;
     dob?: string;
@@ -314,34 +315,16 @@ export default function PatientsPage() {
 
     if (leftCalendarId && rightCalendarId) {
       // Both calendars selected - filter each to its side
-      leftEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId === leftCalendarId;
-      });
-      rightEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId === rightCalendarId;
-      });
+      leftEvents = dayEvents.filter(e => e.calendarName === leftCalendarId);
+      rightEvents = dayEvents.filter(e => e.calendarName === rightCalendarId);
     } else if (leftCalendarId) {
       // Only left calendar selected
-      leftEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId === leftCalendarId;
-      });
-      rightEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId !== leftCalendarId;
-      });
+      leftEvents = dayEvents.filter(e => e.calendarName === leftCalendarId);
+      rightEvents = dayEvents.filter(e => e.calendarName !== leftCalendarId);
     } else if (rightCalendarId) {
       // Only right calendar selected
-      rightEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId === rightCalendarId;
-      });
-      leftEvents = dayEvents.filter(e => {
-        const calendarId = savedCalendars.find(c => c.url === e.calendarName)?.url || e.calendarColor;
-        return calendarId !== rightCalendarId;
-      });
+      rightEvents = dayEvents.filter(e => e.calendarName === rightCalendarId);
+      leftEvents = dayEvents.filter(e => e.calendarName !== rightCalendarId);
     } else {
       // No specific selection - alternate events
       dayEvents.forEach((ev, idx) => {
@@ -362,7 +345,7 @@ export default function PatientsPage() {
     }
 
     return combined;
-  }, [events, selectedDay, leftCalendarId, rightCalendarId, savedCalendars]);
+  }, [events, selectedDay, leftCalendarId, rightCalendarId]);
 
   const selectedEvent = useMemo(() => {
     if (!selectedEventId) return null;
@@ -444,8 +427,9 @@ export default function PatientsPage() {
                 ...e,
                 start: new Date(e.start),
                 end: new Date(e.end),
-                calendarName: cal.name,
+                calendarName: cal.url, // Use URL for matching, name is separate
                 calendarColor: cal.color,
+                calendarDisplayName: cal.name, // Store display name separately
               })) as CalendarEvent[];
               allEvents.push(...parsed);
             }
@@ -820,12 +804,9 @@ export default function PatientsPage() {
                 {/* Left Column - First Calendar */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
                   <div className="mb-2 pb-2 border-b border-white/10" style={{ height: '40px' }}>
-                    <input
-                      type="text"
-                      value={leftCalendarName}
-                      onChange={(e) => setLeftCalendarName(e.target.value)}
-                      className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
-                    />
+                    <span className="text-xs font-medium text-white">
+                      {leftCalendarName}
+                    </span>
                   </div>
 
                   {/* Time slots */}
@@ -879,8 +860,8 @@ export default function PatientsPage() {
                                 {leftDisplayOptions.showTime && leftDisplayOptions.showLocation && '| '}
                                 {leftDisplayOptions.showLocation && (ev.location || 'No location')}
                               </p>
-                              {leftDisplayOptions.showCalendarName && ev.calendarName && (
-                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
+                              {leftDisplayOptions.showCalendarName && ev.calendarDisplayName && (
+                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarDisplayName}</p>
                               )}
                             </div>
                             <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
@@ -895,12 +876,9 @@ export default function PatientsPage() {
                 {/* Right Column - Second Calendar - No time slots */}
                 <div className="relative" style={{ minHeight: `${slots.length * 64}px` }}>
                   <div className="mb-2 pb-2 border-b border-white/10">
-                    <input
-                      type="text"
-                      value={rightCalendarName}
-                      onChange={(e) => setRightCalendarName(e.target.value)}
-                      className="text-xs font-medium text-white bg-transparent border-b border-white/10 focus:outline-none focus:border-blue-500 px-1 py-0.5 w-40"
-                    />
+                    <span className="text-xs font-medium text-white">
+                      {rightCalendarName}
+                    </span>
                   </div>
 
                   {/* No time slots for right calendar - events listed vertically */}
@@ -944,8 +922,8 @@ export default function PatientsPage() {
                                 {rightDisplayOptions.showTime && rightDisplayOptions.showLocation && '| '}
                                 {rightDisplayOptions.showLocation && (ev.location || 'No location')}
                               </p>
-                              {rightDisplayOptions.showCalendarName && ev.calendarName && (
-                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarName}</p>
+                              {rightDisplayOptions.showCalendarName && ev.calendarDisplayName && (
+                                <p className="text-[10px] mt-0.5 text-white/60">{ev.calendarDisplayName}</p>
                               )}
                             </div>
                             <span className="material-symbols-outlined text-white/70 text-sm flex-shrink-0">
@@ -988,10 +966,10 @@ export default function PatientsPage() {
           ) : (
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {/* Calendar Source */}
-              {selectedEvent.calendarName && (
+              {selectedEvent.calendarDisplayName && (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg mb-1">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selectedEvent.calendarColor || '#3b82f6' }} />
-                  <span className="text-xs text-gray-400">{selectedEvent.calendarName}</span>
+                  <span className="text-xs text-gray-400">{selectedEvent.calendarDisplayName}</span>
                 </div>
               )}
 
