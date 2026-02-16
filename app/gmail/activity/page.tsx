@@ -158,7 +158,9 @@ export default function ActivityPage() {
                 log.draft_created ? 'bg-emerald-500/20 text-emerald-400' :
                 'bg-blue-500/20 text-blue-400'
               }`}>
-                <span className="material-symbols-outlined">mail</span>
+                <span className="material-symbols-outlined">
+                  {log.draft_created ? 'draft' : 'mail'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -170,11 +172,20 @@ export default function ActivityPage() {
                     {log.priority}
                   </span>
                   {log.draft_created && (
-                    <span className="badge badge-success">Draft</span>
+                    <span className="badge badge-success flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                      Draft Created
+                    </span>
                   )}
                 </div>
                 <p className="text-sm font-medium mb-1 truncate">{log.subject}</p>
                 <p className="text-sm text-gray-400 line-clamp-2">{log.summary}</p>
+                {log.draft_created && (
+                  <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">info</span>
+                    AI-generated draft reply is available in your Gmail
+                  </p>
+                )}
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span>{new Date(log.created_at).toLocaleString()}</span>
                   {log.inbox_email && <span>• {log.inbox_email}</span>}

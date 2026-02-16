@@ -24,6 +24,14 @@ function normalizePhone(phone: string): string | null {
   }
 }
 
+function normalizeHeader(header: string): string {
+  return header
+    .trim()
+    .replace(/^"|"$/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_');
+}
+
 function parseCSV(csvText: string): any[] {
   try {
     const result = Papa.parse(csvText, {
@@ -32,7 +40,15 @@ function parseCSV(csvText: string): any[] {
       transformHeader: (header) => header.trim().replace(/^"|"$/g, ''),
     });
     
-    return result.data || [];
+    const data = result.data || [];
+    
+    // Log parsing details
+    console.log('CSV Parsing Details:');
+    console.log('- Raw headers:', result.meta?.fields);
+    console.log('- Number of rows parsed:', data.length);
+    console.log('- First row sample:', data[0]);
+    
+    return data;
   } catch (error) {
     console.error('CSV parsing error:', error);
     return [];
@@ -66,8 +82,9 @@ export async function POST(request: NextRequest) {
     };
     
     for (const row of rows) {
-      const firstName = row.firstName || row.first_name || '';
-      const lastName = row.lastName || row.last_name || '';
+      // More flexible header matching
+      const firstName = row.firstName || row.first_name || row.firstname || row['First Name'] || '';
+      const lastName = row.lastName || row.last_name || row.lastname || row['Last Name'] || '';
       
       // Trim whitespace and check for empty values
       const trimmedFirstName = firstName.trim();
@@ -92,22 +109,32 @@ export async function POST(request: NextRequest) {
           existingClient = data;
         }
         
+        // Flexible field matching
+        const getFieldValue = (...fields: (string | undefined)[]) => {
+          for (const field of fields) {
+            if (field && typeof field === 'string' && field.trim()) {
+              return field.trim();
+            }
+          }
+          return null;
+        };
+
         const clientData = {
           first_name: trimmedFirstName,
           last_name: trimmedLastName,
-          preferred_name: (row.preferredName || row.preferred_name || null)?.trim() || null,
-          dob: row.dob?.trim() || null,
-          mrn: (mrn || '')?.trim() || null,
-          status: (row.status || 'active').trim(),
-          address_line_1: (row.addressLine1 || row.address_line_1 || null)?.trim() || null,
-          address_line_2: (row.addressLine2 || row.address_line_2 || null)?.trim() || null,
-          city: (row.city || null)?.trim() || null,
-          state: (row.state || null)?.trim() || null,
-          zip: (row.zip || null)?.trim() || null,
-          insurance_provider: (row.insuranceProvider || row.insurance_provider || null)?.trim() || null,
-          insurance_member_id: (row.insuranceMemberId || row.insurance_member_id || null)?.trim() || null,
-          emergency_contact_name: (row.emergencyContactName || row.emergency_contact_name || null)?.trim() || null,
-          emergency_contact_phone: (row.emergencyContactPhone || row.emergency_contact_phone || null)?.trim() || null,
+          preferred_name: getFieldValue(row.preferredName, row.preferred_name, row.nickname, row['Preferred Name']),
+          dob: getFieldValue(row.dob, row.date_of_birth, row['Date of Birth']),
+          mrn: getFieldValue(mrn, row.medical_record_number, row['MRN']),
+          status: getFieldValue(row.status, row.Status) || 'active',
+          address_line_1: getFieldValue(row.addressLine1, row.address_line_1, row.address, row['Address Line 1'], row.Address),
+          address_line_2: getFieldValue(row.addressLine2, row.address_line_2, row['Address Line 2']),
+          city: getFieldValue(row.city, row.City),
+          state: getFieldValue(row.state, row.State),
+          zip: getFieldValue(row.zip, row.zip_code, row['Zip'], row['Zip Code']),
+          insurance_provider: getFieldValue(row.insuranceProvider, row.insurance_provider, row['Insurance Provider']),
+          insurance_member_id: getFieldValue(row.insuranceMemberId, row.insurance_member_id, row['Insurance Member ID']),
+          emergency_contact_name: getFieldValue(row.emergencyContactName, row.emergency_contact_name, row['Emergency Contact Name']),
+          emergency_contact_phone: getFieldValue(row.emergencyContactPhone, row.emergency_contact_phone, row['Emergency Contact Phone']),
           updated_at: new Date().toISOString()
         };
         
@@ -136,17 +163,23 @@ export async function POST(request: NextRequest) {
         
         const contacts: { type: string; value: string; label?: string; isPrimary: boolean }[] = [];
         
-        if (row.phone?.trim()) {
-          contacts.push({ type: 'phone', value: row.phone.trim(), label: row.phoneLabel?.trim(), isPrimary: true });
+        // Flexible phone field matching
+        const phone1 = getFieldValue(row.phone, row.Phone, row['Phone']);
+        const phone2 = getFieldValue(row.phone2, row.phone_2, row.Phone2, row['Phone 2']);
+        const email1 = getFieldValue(row.email, row.Email, row['Email']);
+        const email2 = getFieldValue(row.email2, row.email_2, row.Email2, row['Email 2']);
+        
+        if (phone1) {
+          contacts.push({ type: 'phone', value: phone1, label: getFieldValue(row.phoneLabel, row['Phone Label'], row['Phone Label 1']), isPrimary: true });
         }
-        if (row.phone2?.trim()) {
-          contacts.push({ type: 'phone', value: row.phone2.trim(), label: row.phone2Label?.trim(), isPrimary: false });
+        if (phone2) {
+          contacts.push({ type: 'phone', value: phone2, label: getFieldValue(row.phone2Label, row['Phone Label 2']), isPrimary: false });
         }
-        if (row.email?.trim()) {
-          contacts.push({ type: 'email', value: row.email.trim(), label: row.emailLabel?.trim(), isPrimary: true });
+        if (email1) {
+          contacts.push({ type: 'email', value: email1, label: getFieldValue(row.emailLabel, row['Email Label'], row['Email Label 1']), isPrimary: true });
         }
-        if (row.email2?.trim()) {
-          contacts.push({ type: 'email', value: row.email2.trim(), label: row.email2Label?.trim(), isPrimary: false });
+        if (email2) {
+          contacts.push({ type: 'email', value: email2, label: getFieldValue(row.email2Label, row['Email Label 2']), isPrimary: false });
         }
         
         for (const contact of contacts) {
