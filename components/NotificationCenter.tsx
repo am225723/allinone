@@ -6,9 +6,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Notification } from '@/lib/notifications';
 
 export default function NotificationCenter() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -121,6 +123,43 @@ export default function NotificationCenter() {
     }
   }
 
+  function handleNotificationClick(notification: Notification) {
+    // Mark as read when clicking
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    
+    // Navigate based on notification type and data
+    if (notification.url) {
+      router.push(notification.url);
+      setIsOpen(false);
+      return;
+    }
+
+    // Default navigation based on notification properties
+    switch (notification.channel) {
+      case 'gmail':
+        if (notification.data?.email_id) {
+          router.push(`/gmail`);
+        } else {
+          router.push('/gmail/activity');
+        }
+        break;
+      case 'openphone':
+        if (notification.data?.conversation_id) {
+          router.push('/openphone');
+        } else {
+          router.push('/openphone');
+        }
+        break;
+      default:
+        // If no specific navigation, just close the panel
+        break;
+    }
+    
+    setIsOpen(false);
+  }
+
   function formatTimestamp(timestamp: string) {
     const date = new Date(timestamp);
     const now = new Date();
@@ -225,9 +264,10 @@ export default function NotificationCenter() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-gray-800/50 transition-colors ${
+                      className={`p-4 hover:bg-gray-800/50 transition-colors cursor-pointer ${
                         !notification.read ? 'bg-blue-500/5' : ''
                       }`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex gap-3">
                         <span className={`material-symbols-outlined ${getNotificationColor(notification)}`}>
@@ -250,7 +290,10 @@ export default function NotificationCenter() {
                             <div className="flex gap-2">
                               {!notification.read && (
                                 <button
-                                  onClick={() => markAsRead(notification.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(notification.id);
+                                  }}
                                   className="text-xs text-blue-400 hover:text-blue-300"
                                   aria-label={`Mark notification "${notification.title}" as read`}
                                 >
@@ -258,7 +301,10 @@ export default function NotificationCenter() {
                                 </button>
                               )}
                               <button
-                                onClick={() => deleteNotification(notification.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }}
                                 className="text-xs text-red-400 hover:text-red-300"
                                 aria-label={`Delete notification "${notification.title}"`}
                               >
