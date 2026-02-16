@@ -32,6 +32,9 @@ export default function OneSignalInit() {
         await OneSignal.init({
           appId: "a826fa27-5eaf-46ef-8a58-118e8dd2820c",
           allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: "/OneSignalSDKWorker.js",
+          serviceWorkerUpdaterPath: "/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/" },
         });
       } catch (initError: any) {
         // Known non-critical errors - log once and stop
