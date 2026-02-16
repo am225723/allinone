@@ -234,25 +234,71 @@ export default function PatientsPage() {
   const [calendarReloadKey, setCalendarReloadKey] = useState(0);
   const [appointmentTypes, setAppointmentTypes] = useState<{id: string; name: string; platform: string; active: boolean}[]>([]);
   const [practiceLocations, setPracticeLocations] = useState<{id: string; name: string; type: string; active: boolean}[]>([]);
-  const [leftCalendarName, setLeftCalendarName] = useState('Calendar 1');
-  const [rightCalendarName, setRightCalendarName] = useState('Calendar 2');
-  const [leftCalendarId, setLeftCalendarId] = useState<string | null>(null);
-  const [rightCalendarId, setRightCalendarId] = useState<string | null>(null);
+  const [leftCalendarName, setLeftCalendarName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('calendar_left_name') || 'Calendar 1';
+    }
+    return 'Calendar 1';
+  });
+  const [rightCalendarName, setRightCalendarName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('calendar_right_name') || 'Calendar 2';
+    }
+    return 'Calendar 2';
+  });
+  const [leftCalendarId, setLeftCalendarId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('calendar_left_calendar_id') || null;
+    }
+    return null;
+  });
+  const [rightCalendarId, setRightCalendarId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('calendar_right_calendar_id') || null;
+    }
+    return null;
+  });
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState('');
   const [loadingClients, setLoadingClients] = useState(false);
-  const [leftDisplayOptions, setLeftDisplayOptions] = useState({
-    showTime: true,
-    showLocation: true,
-    showCalendarName: true,
+  const [leftDisplayOptions, setLeftDisplayOptions] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('calendar_left_display_options');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return { showTime: true, showLocation: true, showCalendarName: true };
+        }
+      }
+    }
+    return { showTime: true, showLocation: true, showCalendarName: true };
   });
-  const [rightDisplayOptions, setRightDisplayOptions] = useState({
-    showTime: true,
-    showLocation: true,
-    showCalendarName: true,
+  const [rightDisplayOptions, setRightDisplayOptions] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('calendar_right_display_options');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return { showTime: true, showLocation: true, showCalendarName: true };
+        }
+      }
+    }
+    return { showTime: true, showLocation: true, showCalendarName: true };
   });
-  const [leftTimeOffset, setLeftTimeOffset] = useState(0);
-  const [rightTimeOffset, setRightTimeOffset] = useState(0);
+  const [leftTimeOffset, setLeftTimeOffset] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('calendar_left_time_offset') || '0');
+    }
+    return 0;
+  });
+  const [rightTimeOffset, setRightTimeOffset] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('calendar_right_time_offset') || '0');
+    }
+    return 0;
+  });
   const [appointmentTypeColors, setAppointmentTypeColors] = useState<{[key: string]: string}>({
     'intake': '#ef4444',
     'evaluation': '#ef4444',
@@ -376,6 +422,49 @@ export default function PatientsPage() {
     }
     loadSettingsData();
   }, []);
+
+  // Save calendar settings to localStorage
+  useEffect(() => {
+    if (leftCalendarId !== null) {
+      localStorage.setItem('calendar_left_calendar_id', leftCalendarId);
+    } else {
+      localStorage.removeItem('calendar_left_calendar_id');
+    }
+  }, [leftCalendarId]);
+
+  useEffect(() => {
+    if (rightCalendarId !== null) {
+      localStorage.setItem('calendar_right_calendar_id', rightCalendarId);
+    } else {
+      localStorage.removeItem('calendar_right_calendar_id');
+    }
+  }, [rightCalendarId]);
+
+  useEffect(() => {
+    localStorage.setItem('calendar_left_time_offset', leftTimeOffset.toString());
+  }, [leftTimeOffset]);
+
+  useEffect(() => {
+    localStorage.setItem('calendar_right_time_offset', rightTimeOffset.toString());
+  }, [rightTimeOffset]);
+
+  // Save calendar names to localStorage
+  useEffect(() => {
+    localStorage.setItem('calendar_left_name', leftCalendarName);
+  }, [leftCalendarName]);
+
+  useEffect(() => {
+    localStorage.setItem('calendar_right_name', rightCalendarName);
+  }, [rightCalendarName]);
+
+  // Save display options to localStorage
+  useEffect(() => {
+    localStorage.setItem('calendar_left_display_options', JSON.stringify(leftDisplayOptions));
+  }, [leftDisplayOptions]);
+
+  useEffect(() => {
+    localStorage.setItem('calendar_right_display_options', JSON.stringify(rightDisplayOptions));
+  }, [rightDisplayOptions]);
 
   useEffect(() => {
     async function loadClients() {
