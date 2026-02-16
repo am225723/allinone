@@ -13,6 +13,13 @@ export interface Notification {
   message: string;
   priority: 'high' | 'normal' | 'low';
   read: boolean;
+  // Optional navigation payloads used by the notification center UI.
+  url?: string;
+  data?: {
+    email_id?: string;
+    conversation_id?: string;
+    [key: string]: any;
+  };
   created_at: string;
   metadata?: any;
 }
