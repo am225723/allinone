@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
               return field.trim();
             }
           }
-          return null;
+          return undefined;
         };
 
         const clientData = {
